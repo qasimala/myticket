@@ -53,8 +53,13 @@ export const create = mutation({
     name: v.string(),
     description: v.string(),
     date: v.string(),
+    country: v.string(),
+    city: v.string(),
     location: v.string(),
     imageUrl: v.optional(v.string()),
+    about: v.string(),
+    accessibility: v.string(),
+    faqs: v.string(),
   },
   handler: async (ctx, args) => {
     // Require admin or superadmin role
@@ -64,8 +69,13 @@ export const create = mutation({
       name: args.name,
       description: args.description,
       date: args.date,
+      country: args.country,
+      city: args.city,
       location: args.location,
       imageUrl: args.imageUrl,
+      about: args.about,
+      accessibility: args.accessibility,
+      faqs: args.faqs,
       status: "draft",
       createdAt: Date.now(),
       createdBy: user._id,
@@ -81,8 +91,13 @@ export const update = mutation({
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     date: v.optional(v.string()),
+    country: v.optional(v.string()),
+    city: v.optional(v.string()),
     location: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
+    about: v.optional(v.string()),
+    accessibility: v.optional(v.string()),
+    faqs: v.optional(v.string()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"), v.literal("cancelled"))),
   },
   handler: async (ctx, args) => {
@@ -92,8 +107,8 @@ export const update = mutation({
     const event = await ctx.db.get(args.id);
     if (!event) throw new Error("Event not found");
 
-    // Check permissions: must be creator or admin (legacy events without creator can be edited by anyone)
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to update this event");
     }
 
@@ -112,8 +127,8 @@ export const remove = mutation({
     const event = await ctx.db.get(args.id);
     if (!event) throw new Error("Event not found");
 
-    // Check permissions: must be creator or admin (legacy events without creator can be deleted by anyone)
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to delete this event");
     }
 
@@ -141,8 +156,8 @@ export const publish = mutation({
     const event = await ctx.db.get(args.id);
     if (!event) throw new Error("Event not found");
 
-    // Check permissions: must be creator or admin (legacy events without creator can be published by anyone)
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to publish this event");
     }
 

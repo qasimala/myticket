@@ -17,11 +17,16 @@ export default defineSchema({
     name: v.string(),
     description: v.string(),
     date: v.string(), // ISO date string
-    location: v.string(),
+    country: v.string(),
+    city: v.string(),
+    location: v.string(), // Venue name
     imageUrl: v.optional(v.string()),
+    about: v.string(), // Detailed information about the event
+    accessibility: v.string(), // Accessibility information
+    faqs: v.string(), // FAQs in JSON string format (array of {question, answer})
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("cancelled")),
     createdAt: v.number(),
-    createdBy: v.optional(v.id("userProfiles")), // User profile who created this event (optional for legacy events)
+    createdBy: v.id("userProfiles"),
   })
     .index("by_date", ["date"])
     .index("by_creator", ["createdBy"]),

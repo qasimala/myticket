@@ -38,8 +38,8 @@ export const create = mutation({
     const event = await ctx.db.get(args.eventId);
     if (!event) throw new Error("Event not found");
 
-    // Legacy events without creator can be edited by anyone
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to add tickets to this event");
     }
 
@@ -76,8 +76,8 @@ export const update = mutation({
     const event = await ctx.db.get(ticket.eventId);
     if (!event) throw new Error("Event not found");
 
-    // Legacy events without creator can be edited by anyone
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to update this ticket");
     }
 
@@ -99,8 +99,8 @@ export const remove = mutation({
     const event = await ctx.db.get(ticket.eventId);
     if (!event) throw new Error("Event not found");
 
-    // Legacy events without creator can be edited by anyone
-    if (event.createdBy && event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    // Check permissions: must be creator or admin
+    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
       throw new Error("You don't have permission to delete this ticket");
     }
 

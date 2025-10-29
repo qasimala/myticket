@@ -76,7 +76,7 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
           <div className="flex items-center text-gray-700">
             <span className="font-semibold mr-2">📍 Location:</span>
-            {event.location}
+            {event.location}, {event.city}, {event.country}
           </div>
           <div className="flex items-center text-gray-700">
             <span className="font-semibold mr-2">🎫 Tickets:</span>

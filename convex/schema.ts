@@ -40,5 +40,33 @@ export default defineSchema({
     sold: v.number(), // number sold
     status: v.union(v.literal("available"), v.literal("sold_out"), v.literal("hidden")),
   }).index("by_event", ["eventId"]),
+
+  cart: defineTable({
+    userId: v.id("users"),
+    ticketId: v.id("tickets"),
+    quantity: v.number(),
+    addedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_ticket", ["ticketId"]),
+
+  bookings: defineTable({
+    userId: v.id("users"),
+    eventId: v.id("events"),
+    ticketId: v.id("tickets"),
+    quantity: v.number(),
+    totalPrice: v.number(), // in cents
+    status: v.union(
+      v.literal("pending"),
+      v.literal("confirmed"),
+      v.literal("cancelled")
+    ),
+    bookingDate: v.number(),
+    customerName: v.string(),
+    customerEmail: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_event", ["eventId"])
+    .index("by_status", ["status"]),
 });
 

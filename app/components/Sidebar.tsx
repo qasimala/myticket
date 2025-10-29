@@ -24,6 +24,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       description: "Browse all events",
     },
     {
+      name: "My Bookings",
+      path: "/my-bookings",
+      icon: "🎟️",
+      description: "Your ticket bookings",
+      requireAuth: true,
+    },
+    {
       name: "My Events",
       path: "/my-events",
       icon: "📋",
@@ -82,9 +89,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-1">
-              {navItems.map((item) => {
+              {navItems.map((item: any) => {
                 // Hide admin-only items from regular users
                 if (item.requireAdmin && !isAdmin) return null;
+                // Hide auth-required items from non-authenticated users
+                if (item.requireAuth && !currentUser) return null;
 
                 return (
                   <Link

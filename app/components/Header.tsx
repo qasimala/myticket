@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import AuthDialog from "./AuthDialog";
+import Link from "next/link";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const user = useQuery(api.users.current);
+  const cartCount = useQuery(api.cart.getCartCount);
   const { signOut } = useAuthActions();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -49,6 +51,33 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {/* Right side actions */}
           <div className="flex items-center gap-3">
+            {/* Cart icon - only show if user is signed in */}
+            {user && (
+              <Link
+                href="/cart"
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  className="w-6 h-6 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                {cartCount && cartCount > 0 ? (
+                  <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                ) : null}
+              </Link>
+            )}
+
             {user ? (
               <div className="relative">
                 <button

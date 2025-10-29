@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
@@ -13,7 +13,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const event = useQuery(api.events.get, { id: eventId });
   const tickets = useQuery(api.tickets.listByEvent, { eventId });
   const currentUser = useQuery(api.users.current);
+  const addToCart = useMutation(api.cart.addToCart);
   const [activeSection, setActiveSection] = useState<"tickets" | "about" | "accessibility" | "faqs">("tickets");
+  const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   if (event === undefined || tickets === undefined) {
     return (
@@ -91,6 +94,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   } catch (e) {
     console.error("Failed to parse FAQs", e);
   }
+
+  const handleAddToCart = async (ticketId: Id<"tickets">) => {
+    const quantity = ticketQuantities[ticketId] || 1;
+    setAddingToCart(ticketId);
+    try {
+      await addToCart({ ticketId, quantity });
+      setTicketQuantities({ ...ticketQuantities, [ticketId]: 1 });
+      // Show success feedback (you could add a toast notification here)
+    } catch (err: any) {
+      alert(err.message || "Failed to add to cart");
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
+  const getQuantity = (ticketId: string) => ticketQuantities[ticketId] || 1;
+
+  const updateQuantity = (ticketId: string, change: number) => {
+    const current = getQuantity(ticketId);
+    const newQuantity = Math.max(1, current + change);
+    setTicketQuantities({ ...ticketQuantities, [ticketId]: newQuantity });
+  };
 
   return (
     <MainLayout>
@@ -264,68 +289,109 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tickets.map((ticket) => (
-                    <div
-                      key={ticket._id}
-                      className="border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-400 hover:shadow-lg transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-2xl font-bold text-gray-900">
-                              {ticket.name}
-                            </h3>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                                ticket.status === "sold_out"
-                                  ? "bg-red-100 text-red-800"
+                  {tickets.map((ticket) => {
+                    const availableCount = ticket.quantity - ticket.sold;
+                    const quantity = getQuantity(ticket._id);
+                    const isAvailable = ticket.status === "available" && availableCount > 0;
+
+                    return (
+                      <div
+                        key={ticket._id}
+                        className="border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-400 hover:shadow-lg transition-all"
+                      >
+                        <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+                          <div className="flex-1 w-full">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="text-2xl font-bold text-gray-900">
+                                {ticket.name}
+                              </h3>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                                  ticket.status === "sold_out"
+                                    ? "bg-red-100 text-red-800"
+                                    : ticket.status === "available"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {ticket.status === "sold_out"
+                                  ? "Sold Out"
                                   : ticket.status === "available"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {ticket.status === "sold_out"
-                                ? "Sold Out"
-                                : ticket.status === "available"
-                                ? "Available"
-                                : "Hidden"}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 mb-4 text-lg">{ticket.description}</p>
-                          <div className="flex items-center gap-8">
-                            <div>
-                              <div className="text-sm text-gray-500 font-semibold mb-1">Available</div>
-                              <div className="text-2xl font-bold text-gray-900">
-                                {ticket.quantity - ticket.sold}
-                                <span className="text-sm text-gray-500 font-normal"> / {ticket.quantity}</span>
+                                  ? "Available"
+                                  : "Hidden"}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 mb-4 text-lg">{ticket.description}</p>
+                            <div className="flex items-center gap-8">
+                              <div>
+                                <div className="text-sm text-gray-500 font-semibold mb-1">Available</div>
+                                <div className="text-2xl font-bold text-gray-900">
+                                  {availableCount}
+                                  <span className="text-sm text-gray-500 font-normal"> / {ticket.quantity}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-sm text-gray-500 font-semibold mb-1">Sold</div>
+                                <div className="text-2xl font-bold text-indigo-600">{ticket.sold}</div>
                               </div>
                             </div>
-                            <div>
-                              <div className="text-sm text-gray-500 font-semibold mb-1">Sold</div>
-                              <div className="text-2xl font-bold text-indigo-600">{ticket.sold}</div>
-                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-4xl font-bold text-indigo-600 mb-3">
-                            {formatPrice(ticket.price)}
-                          </div>
-                          {ticket.status === "available" && ticket.sold < ticket.quantity ? (
-                            <button
-                              disabled
-                              className="px-8 py-3 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed font-semibold"
-                            >
-                              Booking Soon
-                            </button>
-                          ) : (
-                            <div className="px-8 py-3 bg-red-100 text-red-700 rounded-lg font-semibold">
-                              Sold Out
+                          <div className="text-right w-full lg:w-auto">
+                            <div className="text-4xl font-bold text-indigo-600 mb-4">
+                              {formatPrice(ticket.price)}
                             </div>
-                          )}
+                            
+                            {currentUser && isAvailable ? (
+                              <div className="space-y-3">
+                                {/* Quantity Selector */}
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => updateQuantity(ticket._id, -1)}
+                                    disabled={quantity <= 1}
+                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-12 text-center font-bold text-lg">
+                                    {quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => updateQuantity(ticket._id, 1)}
+                                    disabled={quantity >= availableCount}
+                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
+                                {/* Add to Cart Button */}
+                                <button
+                                  onClick={() => handleAddToCart(ticket._id)}
+                                  disabled={addingToCart === ticket._id}
+                                  className="w-full px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {addingToCart === ticket._id ? "Adding..." : "Add to Cart"}
+                                </button>
+                              </div>
+                            ) : !currentUser && isAvailable ? (
+                              <div className="text-center">
+                                <Link
+                                  href="/"
+                                  className="inline-block px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                                >
+                                  Sign in to Book
+                                </Link>
+                              </div>
+                            ) : (
+                              <div className="px-8 py-3 bg-red-100 text-red-700 rounded-lg font-semibold text-center">
+                                Sold Out
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

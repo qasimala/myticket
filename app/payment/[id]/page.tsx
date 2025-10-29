@@ -1,12 +1,13 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 import Script from "next/script";
+import { useRouter } from "next/navigation";
 
 export default function PaymentPage({
   params,
@@ -16,11 +17,13 @@ export default function PaymentPage({
   const { id } = use(params);
   const bookingId = id as Id<"bookings">;
   const booking = useQuery(api.bookings.getBooking, { bookingId });
-  const initializePayment = useMutation(api.payments.initializePayment);
+  const initializePayment = useAction(api.payments.initializePayment);
+  const router = useRouter();
   
   const [paymentData, setPaymentData] = useState<{
     checkoutId: string;
     widgetUrl: string;
+    isMock?: boolean;
   } | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +37,7 @@ export default function PaymentPage({
     if (booking && booking.paymentStatus === "pending" && !paymentData && !isInitializing) {
       initPayment();
     }
-  }, [booking]);
+  }, [booking, paymentData, isInitializing]);
 
   const initPayment = async () => {
     setIsInitializing(true);
@@ -42,12 +45,24 @@ export default function PaymentPage({
     
     try {
       const result = await initializePayment({ bookingId });
+
+      if (!result.widgetUrl || result.isMock) {
+        setPaymentData({
+          checkoutId: result.checkoutId,
+          widgetUrl: "",
+          isMock: true,
+        });
+        router.push(`/payment/result?bookingId=${bookingId}`);
+        return;
+      }
+
       setPaymentData({
         checkoutId: result.checkoutId,
         widgetUrl: result.widgetUrl,
       });
     } catch (err: any) {
       setError(err.message || "Failed to initialize payment");
+    } finally {
       setIsInitializing(false);
     }
   };
@@ -56,7 +71,7 @@ export default function PaymentPage({
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="animate-pulse space-y-4">
               <div className="h-12 bg-gray-200 rounded w-1/3"></div>
               <div className="h-96 bg-gray-200 rounded"></div>
@@ -71,7 +86,7 @@ export default function PaymentPage({
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-white rounded-xl shadow-md p-12 text-center">
               <div className="text-6xl mb-4">❌</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -97,7 +112,7 @@ export default function PaymentPage({
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-green-50 border-2 border-green-200 rounded-xl p-12 text-center">
               <div className="text-6xl mb-4">✅</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -122,7 +137,7 @@ export default function PaymentPage({
   return (
     <MainLayout>
       <div className="p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="mx-auto w-full">
           {/* Page Header */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Complete Payment</h1>
@@ -155,6 +170,14 @@ export default function PaymentPage({
                     <p className="text-gray-600">Initializing secure payment...</p>
                   </div>
                 ) : (
+                  paymentData.isMock ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">
+                        Finalizing your booking...
+                      </p>
+                    </div>
+                  ) : (
                   <>
                     {/* Load PeachPayments Widget */}
                     <Script
@@ -200,6 +223,7 @@ export default function PaymentPage({
                       </div>
                     </div>
                   </>
+                  )
                 )}
               </div>
             </div>

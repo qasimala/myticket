@@ -52,7 +52,7 @@ export default function PaymentResultPage() {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-white rounded-xl shadow-md p-12 text-center">
               <div className="text-6xl mb-4">❌</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -78,7 +78,7 @@ export default function PaymentResultPage() {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-white rounded-xl shadow-md p-12 text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-6"></div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -102,7 +102,7 @@ export default function PaymentResultPage() {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-12 text-center mb-6">
               <div className="text-6xl mb-4">✅</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -146,7 +146,7 @@ export default function PaymentResultPage() {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto w-full">
             <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-12 text-center mb-6">
               <div className="text-6xl mb-4">❌</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -190,7 +190,7 @@ export default function PaymentResultPage() {
   return (
     <MainLayout>
       <div className="p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="mx-auto w-full">
           <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">⏳</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

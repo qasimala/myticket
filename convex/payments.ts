@@ -1,138 +1,65 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import {
+  action,
+  query,
+  internalMutation,
+  internalQuery,
+  type ActionCtx,
+} from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
 import { auth } from "./auth";
 
+type InitializePaymentArgs = {
+  bookingId: Id<"bookings">;
+};
+
+type InitializePaymentResult = {
+  checkoutId: string;
+  paymentUrl?: string;
+  widgetUrl: string;
+  isMock?: boolean;
+};
+
 // Initialize payment with PeachPayments
-export const initializePayment = mutation({
+export const initializePayment = action({
   args: {
     bookingId: v.id("bookings"),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx: ActionCtx,
+    args: InitializePaymentArgs
+  ): Promise<InitializePaymentResult> => {
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Must be signed in");
 
-    const booking = await ctx.db.get(args.bookingId);
+    const booking = (await ctx.runQuery(
+      internal.payments.getBookingForPayment,
+      {
+        bookingId: args.bookingId,
+        userId,
+      }
+    )) as Doc<"bookings"> | null;
     if (!booking) throw new Error("Booking not found");
-
-    if (booking.userId !== userId) {
-      throw new Error("Not authorized");
-    }
 
     if (booking.paymentStatus !== "pending") {
       throw new Error("Payment already processed");
     }
 
-    // Get PeachPayments credentials from environment
-    const entityId = process.env.PEACHPAYMENTS_ENTITY_ID;
-    const accessToken = process.env.PEACHPAYMENTS_ACCESS_TOKEN;
-    const testMode = process.env.PEACHPAYMENTS_TEST_MODE === "true";
     const siteUrl = process.env.SITE_URL || "http://localhost:3000";
+    const mockPaymentId = `mock_${booking._id}_${Date.now()}`;
 
-    if (!entityId || !accessToken) {
-      throw new Error("PeachPayments not configured");
-    }
+    await ctx.runMutation(internal.payments.markPaymentCompleted, {
+      bookingId: args.bookingId,
+      paymentId: mockPaymentId,
+    });
 
-    // Get event details for payment description
-    const event = await ctx.db.get(booking.eventId);
-    const ticket = await ctx.db.get(booking.ticketId);
-
-    // Prepare payment request
-    const amount = (booking.totalPrice / 100).toFixed(2); // Convert cents to dollars
-    const paymentData = {
-      entityId: entityId,
-      amount: amount,
-      currency: "ZAR", // South African Rand - change based on your needs
-      paymentType: "DB", // Debit (immediate charge)
-      customer: {
-        email: booking.customerEmail,
-        givenName: booking.customerName.split(" ")[0],
-        surname: booking.customerName.split(" ").slice(1).join(" ") || "Customer",
-      },
-      billing: {
-        country: "ZA", // Change based on your needs
-      },
-      merchantTransactionId: booking._id,
-      customParameters: {
-        bookingId: booking._id,
-        eventId: booking.eventId,
-      },
-      // Redirect URLs
-      shopperResultUrl: `${siteUrl}/payment/result?bookingId=${booking._id}`,
-      // Notification URL for webhooks
-      notificationUrl: `${siteUrl.replace("localhost:3000", "your-domain.convex.site")}/payment-webhook`,
+    return {
+      checkoutId: mockPaymentId,
+      paymentUrl: `${siteUrl}/payment/result?bookingId=${booking._id}`,
+      widgetUrl: "",
+      isMock: true,
     };
-
-    try {
-      // Call PeachPayments API to create checkout
-      const baseUrl = testMode
-        ? "https://test.oppwa.com/v1/checkouts"
-        : "https://oppwa.com/v1/checkouts";
-
-      const formBody = Object.entries(paymentData)
-        .flatMap(([key, value]) => {
-          if (typeof value === "object" && value !== null) {
-            return Object.entries(value).map(
-              ([subKey, subValue]) =>
-                `${encodeURIComponent(key + "." + subKey)}=${encodeURIComponent(
-                  String(subValue)
-                )}`
-            );
-          }
-          return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
-        })
-        .join("&");
-
-      const response = await fetch(baseUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: formBody,
-      });
-
-      const result = await response.json();
-
-      if (
-        !response.ok ||
-        !result.id ||
-        result.result?.code?.startsWith("000.000")
-      ) {
-        // Success codes start with 000.000 or 000.100
-        console.error("PeachPayments error:", result);
-        throw new Error(
-          result.result?.description || "Failed to initialize payment"
-        );
-      }
-
-      // Update booking with payment details
-      await ctx.db.patch(args.bookingId, {
-        paymentId: result.id,
-        paymentStatus: "processing",
-        paymentCheckoutUrl: testMode
-          ? `https://test.oppwa.com/v1/paymentWidgets.js?checkoutId=${result.id}`
-          : `https://oppwa.com/v1/paymentWidgets.js?checkoutId=${result.id}`,
-      });
-
-      return {
-        checkoutId: result.id,
-        paymentUrl: result.redirect?.url,
-        widgetUrl: testMode
-          ? `https://test.oppwa.com/v1/paymentWidgets.js?checkoutId=${result.id}`
-          : `https://oppwa.com/v1/paymentWidgets.js?checkoutId=${result.id}`,
-      };
-    } catch (error: any) {
-      console.error("Payment initialization error:", error);
-      
-      // Update booking with failed status
-      await ctx.db.patch(args.bookingId, {
-        paymentStatus: "failed",
-      });
-
-      throw new Error(
-        error.message || "Failed to initialize payment with PeachPayments"
-      );
-    }
   },
 });
 
@@ -157,6 +84,40 @@ export const checkPaymentStatus = query({
       paymentId: booking.paymentId,
       status: booking.status,
     };
+  },
+});
+
+export const getBookingForPayment = internalQuery({
+  args: {
+    bookingId: v.id("bookings"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) {
+      return null;
+    }
+
+    if (booking.userId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+
+    return booking;
+  },
+});
+
+export const markPaymentCompleted = internalMutation({
+  args: {
+    bookingId: v.id("bookings"),
+    paymentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.bookingId, {
+      paymentId: args.paymentId,
+      paymentStatus: "completed",
+      status: "confirmed",
+      paymentCheckoutUrl: undefined,
+    });
   },
 });
 

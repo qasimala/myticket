@@ -1,13 +1,15 @@
 "use client";
 
+import { use } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 
-export default function EventDetailPage({ params }: { params: { id: string } }) {
-  const eventId = params.id as Id<"events">;
+export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const eventId = id as Id<"events">;
   const event = useQuery(api.events.get, { id: eventId });
   const tickets = useQuery(api.tickets.listByEvent, { eventId });
   const currentUser = useQuery(api.users.current);

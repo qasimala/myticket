@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import TicketManager from "./TicketManager";
+import Link from "next/link";
 
 interface EventCardProps {
   event: Doc<"events">;
@@ -13,9 +14,12 @@ interface EventCardProps {
 export default function EventCard({ event }: EventCardProps) {
   const [showTickets, setShowTickets] = useState(false);
   const tickets = useQuery(api.tickets.listByEvent, { eventId: event._id });
+  const currentUser = useQuery(api.users.current);
   const publishEvent = useMutation(api.events.publish);
   const updateEvent = useMutation(api.events.update);
   const removeEvent = useMutation(api.events.remove);
+
+  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -81,44 +85,55 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setShowTickets(!showTickets)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          <Link
+            href={`/events/${event._id}`}
+            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
           >
-            {showTickets ? "Hide Tickets" : "Manage Tickets"}
-          </button>
+            View Details
+          </Link>
 
-          {event.status === "draft" && (
-            <button
-              onClick={() => publishEvent({ id: event._id })}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-            >
-              Publish
-            </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setShowTickets(!showTickets)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                {showTickets ? "Hide Tickets" : "Manage Tickets"}
+              </button>
+
+              {event.status === "draft" && (
+                <button
+                  onClick={() => publishEvent({ id: event._id })}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Publish
+                </button>
+              )}
+
+              {event.status === "published" && (
+                <button
+                  onClick={() => updateEvent({ id: event._id, status: "cancelled" })}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  Cancel Event
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  if (confirm(`Are you sure you want to delete "${event.name}"?`)) {
+                    removeEvent({ id: event._id });
+                  }
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </>
           )}
-
-          {event.status === "published" && (
-            <button
-              onClick={() => updateEvent({ id: event._id, status: "cancelled" })}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-            >
-              Cancel Event
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              if (confirm(`Are you sure you want to delete "${event.name}"?`)) {
-                removeEvent({ id: event._id });
-              }
-            }}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Delete
-          </button>
         </div>
 
-        {showTickets && <TicketManager eventId={event._id} />}
+        {isAdmin && showTickets && <TicketManager eventId={event._id} />}
       </div>
     </div>
   );

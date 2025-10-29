@@ -9,6 +9,7 @@ import Link from "next/link";
 export default function MyEventsPage() {
   const currentUser = useQuery(api.users.current);
   const myEvents = useQuery(api.events.myEvents);
+  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   return (
     <MainLayout>
@@ -27,6 +28,19 @@ export default function MyEventsPage() {
               </h3>
               <p className="text-gray-600 mb-4">
                 Please sign in to view your events
+              </p>
+            </div>
+          ) : !isAdmin ? (
+            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Admin Access Required
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Only administrators can create and manage events
+              </p>
+              <p className="text-sm text-gray-500">
+                You can still browse all available events
               </p>
             </div>
           ) : (

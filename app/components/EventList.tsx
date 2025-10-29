@@ -14,17 +14,29 @@ export default function EventList() {
 
   const events = showMyEventsOnly ? myEvents : allEvents;
 
+  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">All Events</h1>
-        <p className="text-gray-600 mt-1">Browse and manage events</p>
+        <p className="text-gray-600 mt-1">
+          {isAdmin ? "Manage all events" : "Browse upcoming events"}
+        </p>
       </div>
+
+      {currentUser && !isAdmin && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 text-sm">
+            💡 Welcome! Browse events and view ticket information. Contact an admin to create events.
+          </p>
+        </div>
+      )}
 
       {!currentUser && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-blue-800 text-sm">
-            💡 <strong>Sign in</strong> to create and manage your own events
+            💡 <strong>Sign in</strong> to view detailed event information
           </p>
         </div>
       )}

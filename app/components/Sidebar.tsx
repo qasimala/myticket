@@ -28,14 +28,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: "/my-events",
       icon: "📋",
       description: "Events you created",
-      requireAuth: true,
+      requireAdmin: true,
     },
     {
       name: "Create Event",
       path: "/create",
       icon: "➕",
       description: "Create a new event",
-      requireAuth: true,
+      requireAdmin: true,
     },
   ];
 
@@ -83,7 +83,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-1">
               {navItems.map((item) => {
-                if (item.requireAuth && !currentUser) return null;
+                // Hide admin-only items from regular users
+                if (item.requireAdmin && !isAdmin) return null;
 
                 return (
                   <Link

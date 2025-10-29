@@ -47,7 +47,7 @@ export const get = query({
   },
 });
 
-// Mutation to create a new event (authenticated users only)
+// Mutation to create a new event (admin only)
 export const create = mutation({
   args: {
     name: v.string(),
@@ -57,8 +57,8 @@ export const create = mutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Require authentication
-    const user = await requireRole(ctx, ["user", "admin", "superadmin"]);
+    // Require admin or superadmin role
+    const user = await requireRole(ctx, ["admin", "superadmin"]);
 
     const eventId = await ctx.db.insert("events", {
       name: args.name,

@@ -15,39 +15,16 @@ export default function EventList() {
   const events = showMyEventsOnly ? myEvents : allEvents;
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-gray-900">Events</h1>
-        <p className="text-gray-600">
-          {showMyEventsOnly ? "Your events" : "All events"}
-        </p>
+    <div className="w-full max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">All Events</h1>
+        <p className="text-gray-600 mt-1">Browse and manage events</p>
       </div>
 
-      {currentUser && (
-        <div className="mb-6 flex gap-4 items-center">
-          <button
-            onClick={() => setShowMyEventsOnly(!showMyEventsOnly)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-              showMyEventsOnly
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-gray-700 border border-gray-300"
-            }`}
-          >
-            {showMyEventsOnly ? "Show All Events" : "Show My Events"}
-          </button>
-        </div>
-      )}
-
-      {currentUser && (
-        <div className="mb-8">
-          <CreateEventForm />
-        </div>
-      )}
-
       {!currentUser && (
-        <div className="mb-8 bg-white rounded-lg shadow-md p-6 text-center">
-          <p className="text-gray-600">
-            Sign in to create and manage your own events
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 text-sm">
+            💡 <strong>Sign in</strong> to create and manage your own events
           </p>
         </div>
       )}

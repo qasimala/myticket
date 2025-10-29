@@ -37,28 +37,28 @@ export default function CreateEventForm() {
     setShowForm(false);
   };
 
-  if (!showForm) {
-    return (
-      <button
-        onClick={() => setShowForm(true)}
-        className="w-full py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-lg shadow-lg"
-      >
-        + Create New Event
-      </button>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Create New Event</h2>
+    <div>
+      {!showForm && (
         <button
-          onClick={() => setShowForm(false)}
-          className="text-gray-500 hover:text-gray-700"
+          onClick={() => setShowForm(true)}
+          className="w-full py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-lg shadow-lg mb-8"
         >
-          ✕
+          + Create New Event
         </button>
-      </div>
+      )}
+
+      {showForm && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Event Details</h2>
+            <button
+              onClick={() => setShowForm(false)}
+              className="text-gray-500 hover:text-gray-700 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -152,6 +152,8 @@ export default function CreateEventForm() {
           </button>
         </div>
       </form>
+        </div>
+      )}
     </div>
   );
 }

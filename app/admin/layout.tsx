@@ -1,15 +1,10 @@
-import Header from "../components/Header";
+import MainLayout from "../components/MainLayout";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <Header />
-      {children}
-    </>
-  );
+  return <MainLayout>{children}</MainLayout>;
 }
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { use } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
+import QRCode from "react-qr-code";
 
 export default function BookingConfirmationPage({
   params,
@@ -15,6 +16,8 @@ export default function BookingConfirmationPage({
   const { id } = use(params);
   const bookingId = id as Id<"bookings">;
   const booking = useQuery(api.bookings.getBooking, { bookingId });
+  const currentUser = useQuery(api.users.current);
+  const updateScanStatus = useMutation(api.bookings.setScannedStatus);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -78,10 +81,42 @@ export default function BookingConfirmationPage({
     );
   }
 
+  const isScanned = Boolean(booking.scanned);
+  const scannedAt = booking.scannedAt
+    ? new Date(booking.scannedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  const qrValue = JSON.stringify({
+    bookingId: booking._id,
+    ticketId: booking.ticketId,
+    token: booking.paymentId ?? booking._id,
+    quantity: booking.quantity,
+  });
+
+  const canManageScan =
+    !!currentUser &&
+    (currentUser.role === "admin" ||
+      currentUser.role === "superadmin" ||
+      (booking.event && booking.event.createdBy === currentUser._id));
+
+  const handleScanUpdate = async (nextState: boolean) => {
+    try {
+      await updateScanStatus({ bookingId, scanned: nextState });
+    } catch (error: any) {
+      alert(error.message || "Failed to update ticket status");
+    }
+  };
+
   return (
     <MainLayout>
       <div className="p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="mx-auto w-full">
           {/* Success Message */}
           <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-8 text-center mb-6">
             <div className="text-6xl mb-4">✅</div>
@@ -92,6 +127,99 @@ export default function BookingConfirmationPage({
               Your tickets have been successfully booked. A confirmation email
               has been sent to <strong>{booking.customerEmail}</strong>
             </p>
+          </div>
+
+          {/* Digital Ticket */}
+          <div className="mb-6 rounded-xl bg-white p-8 shadow-md">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <div className="flex-1 flex flex-col items-center">
+                {isScanned ? (
+                  <div className="w-full rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-center">
+                    <p className="text-lg font-semibold text-red-700">
+                      This ticket has already been used.
+                    </p>
+                    {scannedAt && (
+                      <p className="mt-2 text-sm text-red-600">
+                        Marked as scanned on {scannedAt}.
+                      </p>
+                    )}
+                    <p className="mt-3 text-sm text-red-500">
+                      The QR code is no longer valid for entry.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="inline-flex flex-col items-center rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <QRCode value={qrValue} size={192} />
+                    <p className="mt-4 text-center text-sm text-gray-500">
+                      Present this code at the entrance. It becomes invalid as
+                      soon as the ticket is scanned.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Ticket Details
+                  </h3>
+                  <div className="mt-3 space-y-1 text-sm text-gray-700">
+                    <p>
+                      <span className="font-medium">Booking ID:</span>{" "}
+                      <span className="font-mono break-all">{booking._id}</span>
+                    </p>
+                    <p>
+                      <span className="font-medium">Ticket Type:</span>{" "}
+                      {booking.ticket?.name}
+                    </p>
+                    <p>
+                      <span className="font-medium">Quantity:</span>{" "}
+                      {booking.quantity}
+                    </p>
+                    <p>
+                      <span className="font-medium">Scan Status:</span>{" "}
+                      {isScanned ? "Used" : "Active"}
+                    </p>
+                    {scannedAt && (
+                      <p>
+                        <span className="font-medium">Scanned At:</span>{" "}
+                        {scannedAt}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {canManageScan && (
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+                      Gate Control
+                    </h3>
+                    <p className="mt-2 text-sm text-indigo-700">
+                      {isScanned
+                        ? "This ticket is marked as used. Reset only if the scan was a mistake."
+                        : "Mark the ticket as used immediately after scanning at the gate."}
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      {isScanned ? (
+                        <button
+                          onClick={() => handleScanUpdate(false)}
+                          className="w-full rounded-lg border border-indigo-600 px-5 py-3 text-center font-semibold text-indigo-600 transition-colors hover:bg-indigo-100"
+                        >
+                          Reset Ticket
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleScanUpdate(true)}
+                          className="w-full rounded-lg bg-indigo-600 px-5 py-3 text-center font-semibold text-white transition-colors hover:bg-indigo-700"
+                        >
+                          Mark as Used
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Booking Details */}
@@ -246,6 +374,15 @@ export default function BookingConfirmationPage({
                     Payment: {booking.paymentStatus.toUpperCase()}
                   </span>
                 )}
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    isScanned
+                      ? "bg-red-50 text-red-700 border border-red-200"
+                      : "bg-blue-50 text-blue-700 border border-blue-200"
+                  }`}
+                >
+                  {isScanned ? "Ticket Used" : "Ticket Active"}
+                </span>
               </div>
 
               {/* Actions */}
@@ -279,4 +416,3 @@ export default function BookingConfirmationPage({
     </MainLayout>
   );
 }
-

@@ -73,10 +73,11 @@ export default defineSchema({
     bookingDate: v.number(),
     customerName: v.string(),
     customerEmail: v.string(),
+    scanned: v.optional(v.boolean()),
+    scannedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_event", ["eventId"])
     .index("by_status", ["status"])
     .index("by_payment_id", ["paymentId"]),
 });
-

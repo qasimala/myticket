@@ -48,6 +48,17 @@ export default function PaymentResultPage() {
     return () => clearInterval(interval);
   }, [bookingId, checkAttempts, paymentStatus]);
 
+  useEffect(() => {
+    if (
+      bookingId &&
+      paymentStatus &&
+      paymentStatus.paymentStatus === "completed" &&
+      paymentStatus.status === "confirmed"
+    ) {
+      router.replace(`/bookings/${bookingId}`);
+    }
+  }, [bookingId, paymentStatus, router]);
+
   if (!bookingId) {
     return (
       <MainLayout>

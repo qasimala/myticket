@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
+import { getCurrentUser } from "./users";
 
 // Query to get user's bookings
 export const myBookings = query({
@@ -42,12 +43,33 @@ export const getBooking = query({
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) return null;
 
+    let event = await ctx.db.get(booking.eventId);
+
     if (booking.userId !== userId) {
-      throw new Error("Not authorized");
+      const currentUser = await getCurrentUser(ctx);
+      if (!currentUser) {
+        throw new Error("Not authorized");
+      }
+
+      if (!event) throw new Error("Event not found");
+
+      const isEventOwner = event.createdBy === currentUser._id;
+      const isPrivileged =
+        currentUser.role === "admin" || currentUser.role === "superadmin";
+
+      if (!isEventOwner && !isPrivileged) {
+        throw new Error("Not authorized");
+      }
     }
 
     const ticket = await ctx.db.get(booking.ticketId);
-    const event = await ctx.db.get(booking.eventId);
+    if (!event) {
+      event = await ctx.db.get(booking.eventId);
+    }
+
+    if (!event) {
+      throw new Error("Event not found");
+    }
 
     return {
       ...booking,
@@ -105,6 +127,7 @@ export const checkout = mutation({
         bookingDate: Date.now(),
         customerName: "Customer", // Default name since we don't collect it
         customerEmail: args.customerEmail,
+        scanned: false,
       });
 
       bookingIds.push(bookingId);
@@ -165,3 +188,31 @@ export const cancelBooking = mutation({
   },
 });
 
+export const setScannedStatus = mutation({
+  args: {
+    bookingId: v.id("bookings"),
+    scanned: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Must be signed in");
+
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+
+    const event = await ctx.db.get(booking.eventId);
+    if (!event) throw new Error("Event not found");
+
+    const isEventOwner = event.createdBy === user._id;
+    const isPrivileged = user.role === "admin" || user.role === "superadmin";
+
+    if (!isEventOwner && !isPrivileged) {
+      throw new Error("Not authorized to update scan status");
+    }
+
+    await ctx.db.patch(args.bookingId, {
+      scanned: args.scanned,
+      scannedAt: args.scanned ? Date.now() : undefined,
+    });
+  },
+});

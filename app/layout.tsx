@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MyTicket - Task Manager",
-  description: "A Next.js app with Convex backend for task management",
+  title: "MyTicket - Event & Ticket Management",
+  description: "Create and manage events with multiple ticket types",
 };
 
 export default function RootLayout({

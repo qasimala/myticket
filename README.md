@@ -1,6 +1,6 @@
-# MyTicket - Next.js + Convex App
+# MyTicket - Event & Ticket Management System
 
-A modern task management application built with Next.js and Convex backend.
+A modern event and ticket management platform built with Next.js and Convex backend.
 
 ## Getting Started
 
@@ -65,18 +65,41 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ## Features
 
-- ✅ Create new tasks
-- ✅ Mark tasks as complete/incomplete
-- ✅ Delete tasks
+### Event Management
+- ✅ Create, update, and delete events
+- ✅ Event status management (draft, published, cancelled)
+- ✅ Event details (name, description, date, location, image)
+
+### Ticket Management
+- ✅ Multiple ticket types per event
+- ✅ Price and quantity management
+- ✅ Real-time ticket sales tracking
+- ✅ Auto-sold-out detection
+- ✅ Ticket availability monitoring
+
+### UI/UX
 - ✅ Real-time updates across all clients
 - ✅ Beautiful, responsive UI with Tailwind CSS
+- ✅ Intuitive ticket management interface
+- ✅ Status badges and visual indicators
 
 ## Technologies Used
 
 - **Next.js 15** - React framework with App Router
 - **Convex** - Backend-as-a-Service for real-time data
+- **Convex Auth** - Authentication with role-based access control
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first CSS framework
+
+## Authentication & Roles
+
+MyTicket includes a complete authentication system with three user roles:
+
+- **User** (default) - Can create and manage their own events
+- **Admin** - Can manage all events and view user list
+- **Superadmin** - Full system access including user management
+
+See [AUTH_GUIDE.md](./AUTH_GUIDE.md) for complete documentation.
 
 ## Learn More
 

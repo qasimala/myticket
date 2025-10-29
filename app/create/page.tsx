@@ -12,7 +12,7 @@ export default function CreateEventPage() {
   return (
     <MainLayout>
       <div className="p-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full max-w-4xl mx-auto">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Create New Event</h1>
             <p className="text-gray-600 mt-1">Fill in the details below to create your event</p>

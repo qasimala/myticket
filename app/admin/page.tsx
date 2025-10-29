@@ -68,8 +68,8 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-6 lg:p-8">
+      <div className="w-full">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Panel</h1>
           <p className="text-gray-600">Manage users and their roles</p>

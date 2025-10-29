@@ -90,8 +90,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <MainLayout>
-      <div className="p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="p-6 lg:p-8">
+        <div className="w-full">
           {/* Back button */}
           <Link
             href="/"

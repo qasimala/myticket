@@ -17,7 +17,7 @@ export default function EventList() {
   const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   return (
-    <div className="w-full max-w-7xl mx-auto">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">All Events</h1>
         <p className="text-gray-600 mt-1">

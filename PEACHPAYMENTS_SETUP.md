@@ -2,23 +2,49 @@
 
 ## Environment Variables
 
-Add these to your Convex environment variables using `npx convex env`:
+⚠️ **IMPORTANT:** These variables must be set in Convex (not `.env.local`) because they're used in Convex backend functions.
 
 ### Required Variables
 
+Run these commands for EACH deployment (dev and prod):
+
 ```bash
-# PeachPayments Entity ID (from PeachPayments dashboard)
-npx convex env set PEACHPAYMENTS_ENTITY_ID your_entity_id_here
+# For Development Deployment
+npx convex env set PEACHPAYMENTS_ENTITY_ID your_entity_id_here --dev
+npx convex env set PEACHPAYMENTS_ACCESS_TOKEN your_access_token_here --dev
+npx convex env set PEACHPAYMENTS_TEST_MODE true --dev
+npx convex env set SITE_URL http://localhost:3000 --dev
 
-# PeachPayments Access Token (from PeachPayments dashboard)
-npx convex env set PEACHPAYMENTS_ACCESS_TOKEN your_access_token_here
-
-# Test Mode (set to 'false' for production)
-npx convex env set PEACHPAYMENTS_TEST_MODE true
-
-# Your site URL for payment redirects
-npx convex env set SITE_URL http://localhost:3000
+# For Production Deployment (when ready)
+npx convex env set PEACHPAYMENTS_ENTITY_ID your_prod_entity_id --prod
+npx convex env set PEACHPAYMENTS_ACCESS_TOKEN your_prod_access_token --prod
+npx convex env set PEACHPAYMENTS_TEST_MODE false --prod
+npx convex env set SITE_URL https://your-production-domain.com --prod
 ```
+
+### Why Not `.env.local`?
+
+- `.env.local` is for **Next.js frontend** only
+- Fixed backend functions run in **Convex cloud**
+- Convex functions can't access Next.js environment variables
+- Each Convex deployment needs its own variables set separately
+
+### Optional: Document Values Locally
+
+You can document values in `.env.local` for reference (they won't be used):
+
+```bash
+# .env.local (for reference only - NOT used by Convex!)
+# These are here just to document values, but you still need to run:
+# npx convex env set PEACHPAYMENTS_ENTITY_ID <value>
+
+PEACHPAYMENTS_ENTITY_ID=your_entity_id_here
+PEACHPAYMENTS_ACCESS_TOKEN=your_access_token_here
+PEACHPAYMENTS_TEST_MODE=true
+SITE_URL=http://localhost:3000
+```
+
+But remember: **You still need to run the `npx convex env set` commands!**
 
 ## Getting PeachPayments Credentials
 
@@ -51,4 +77,3 @@ https://your-domain.convex.site/payment-webhook
 5. User completes payment
 6. PeachPayments webhook updates booking status
 7. User redirected to confirmation page
-

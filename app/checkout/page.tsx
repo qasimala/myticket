@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 import MainLayout from "../components/MainLayout";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 
 export default function CheckoutPage() {
   const currentUser = useQuery(api.users.current);
@@ -14,11 +14,20 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    customerName: "",
     customerEmail: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+
+  // Prefill email when user data loads
+  useEffect(() => {
+    if (currentUser?.email) {
+      setFormData((prev) => ({
+        ...prev,
+        customerEmail: prev.customerEmail || currentUser.email || "",
+      }));
+    }
+  }, [currentUser?.email]);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -32,7 +41,6 @@ export default function CheckoutPage() {
     try {
       // Create bookings first (with pending payment status)
       const bookingIds = await checkout({
-        customerName: formData.customerName,
         customerEmail: formData.customerEmail,
       });
 
@@ -140,53 +148,31 @@ export default function CheckoutPage() {
             {/* Checkout Form */}
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Customer Information */}
+                {/* Contact Information */}
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    Customer Information
+                    Contact Information
                   </h2>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="John Doe"
-                        value={formData.customerName}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customerName: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="john@example.com"
-                        value={formData.customerEmail}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customerEmail: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Booking confirmation will be sent to this email
-                      </p>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={formData.customerEmail}
+                      onChange={(e) =>
+                        setFormData({
+                          customerEmail: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Booking confirmation will be sent to this email
+                    </p>
                   </div>
                 </div>
 

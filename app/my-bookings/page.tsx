@@ -139,17 +139,27 @@ export default function MyBookingsPage() {
                             Booked on {formatBookingDate(booking.bookingDate)}
                           </div>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                            booking.status === "confirmed"
-                              ? "bg-green-100 text-green-800"
-                              : booking.status === "cancelled"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {booking.status}
-                        </span>
+                        <div className="flex flex-col gap-2 items-end">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                              booking.status === "confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : booking.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {booking.status}
+                          </span>
+                          {booking.paymentStatus === "pending" && (
+                            <Link
+                              href={`/payment/${booking._id}`}
+                              className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
+                            >
+                              Complete Payment →
+                            </Link>
+                          )}
+                        </div>
                       </div>
 
                       <div className="space-y-2 mb-4">

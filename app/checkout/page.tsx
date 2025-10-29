@@ -30,13 +30,14 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
+      // Create bookings first (with pending payment status)
       const bookingIds = await checkout({
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
       });
 
-      // Redirect to confirmation page with first booking ID
-      router.push(`/bookings/${bookingIds[0]}`);
+      // Redirect to payment page with first booking ID
+      router.push(`/payment/${bookingIds[0]}`);
     } catch (err: any) {
       setError(err.message || "Failed to complete checkout");
       setIsProcessing(false);
@@ -108,7 +109,7 @@ export default function CheckoutPage() {
   return (
     <MainLayout>
       <div className="p-6 lg:p-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="w-full max-w-6xl mx-auto">
           <div className="mb-6">
             <Link
               href="/cart"
@@ -130,7 +131,9 @@ export default function CheckoutPage() {
               Back to Cart
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
-            <p className="text-gray-600 mt-1">Complete your booking</p>
+            <p className="text-gray-600 mt-1">
+              Enter your details to proceed to secure payment
+            </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
@@ -199,7 +202,7 @@ export default function CheckoutPage() {
                   disabled={isProcessing}
                   className="w-full py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? "Processing..." : "Complete Booking"}
+                  {isProcessing ? "Processing..." : "Proceed to Payment"}
                 </button>
               </form>
             </div>
@@ -243,8 +246,8 @@ export default function CheckoutPage() {
 
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <p className="text-xs text-blue-800">
-                    💡 This is a demo checkout. No actual payment will be
-                    processed.
+                    🔒 Secure payment powered by PeachPayments. Your payment
+                    details are encrypted and secure.
                   </p>
                 </div>
               </div>

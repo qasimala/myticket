@@ -61,12 +61,22 @@ export default defineSchema({
       v.literal("confirmed"),
       v.literal("cancelled")
     ),
+    paymentStatus: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("refunded")
+    ),
+    paymentId: v.optional(v.string()), // PeachPayments checkout ID
+    paymentCheckoutUrl: v.optional(v.string()), // URL to redirect user for payment
     bookingDate: v.number(),
     customerName: v.string(),
     customerEmail: v.string(),
   })
     .index("by_user", ["userId"])
     .index("by_event", ["eventId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_payment_id", ["paymentId"]),
 });
 

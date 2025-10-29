@@ -220,7 +220,7 @@ export default function BookingConfirmationPage({
               </div>
 
               {/* Status */}
-              <div className="flex items-center justify-center gap-2 mb-6">
+              <div className="flex flex-col items-center gap-3 mb-6">
                 <span
                   className={`px-4 py-2 rounded-full text-sm font-bold ${
                     booking.status === "confirmed"
@@ -232,6 +232,20 @@ export default function BookingConfirmationPage({
                 >
                   {booking.status.toUpperCase()}
                 </span>
+                
+                {booking.paymentStatus && (
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      booking.paymentStatus === "completed"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : booking.paymentStatus === "failed"
+                        ? "bg-red-50 text-red-700 border border-red-200"
+                        : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                    }`}
+                  >
+                    Payment: {booking.paymentStatus.toUpperCase()}
+                  </span>
+                )}
               </div>
 
               {/* Actions */}

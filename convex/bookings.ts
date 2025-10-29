@@ -94,14 +94,15 @@ export const checkout = mutation({
         );
       }
 
-      // Create booking
+      // Create booking with pending payment status
       const bookingId = await ctx.db.insert("bookings", {
         userId,
         eventId: ticket.eventId,
         ticketId: cartItem.ticketId,
         quantity: cartItem.quantity,
         totalPrice: ticket.price * cartItem.quantity,
-        status: "confirmed",
+        status: "pending",
+        paymentStatus: "pending",
         bookingDate: Date.now(),
         customerName: args.customerName,
         customerEmail: args.customerEmail,

@@ -4,14 +4,19 @@ import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
   ...authTables,
-  
+
   userProfiles: defineTable({
     userId: v.id("users"), // References the auth users table
     name: v.optional(v.string()),
-    role: v.union(v.literal("user"), v.literal("admin"), v.literal("superadmin")),
+    id: v.optional(v.string()), // ID number (e.g., national ID, passport)
+    phone: v.optional(v.string()), // Phone number
+    role: v.union(
+      v.literal("user"),
+      v.literal("admin"),
+      v.literal("superadmin")
+    ),
     createdAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]),
 
   events: defineTable({
     name: v.string(),
@@ -25,7 +30,11 @@ export default defineSchema({
     about: v.string(), // Detailed information about the event
     accessibility: v.string(), // Accessibility information
     faqs: v.string(), // FAQs in JSON string format (array of {question, answer})
-    status: v.union(v.literal("draft"), v.literal("published"), v.literal("cancelled")),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("cancelled")
+    ),
     createdAt: v.number(),
     createdBy: v.id("userProfiles"),
   })
@@ -39,7 +48,11 @@ export default defineSchema({
     price: v.number(), // in cents
     quantity: v.number(), // total available
     sold: v.number(), // number sold
-    status: v.union(v.literal("available"), v.literal("sold_out"), v.literal("hidden")),
+    status: v.union(
+      v.literal("available"),
+      v.literal("sold_out"),
+      v.literal("hidden")
+    ),
   }).index("by_event", ["eventId"]),
 
   cart: defineTable({
@@ -73,6 +86,8 @@ export default defineSchema({
     paymentCheckoutUrl: v.optional(v.string()), // URL to redirect user for payment
     bookingDate: v.number(),
     customerName: v.string(),
+    customerId: v.optional(v.string()), // Customer ID number
+    customerPhone: v.optional(v.string()), // Customer phone number
     customerEmail: v.string(),
     scanned: v.optional(v.boolean()),
     scannedAt: v.optional(v.number()),

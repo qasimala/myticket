@@ -2,6 +2,8 @@
 
 import { useState, FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { X, Sparkles, Loader2 } from "lucide-react";
 
 interface AuthDialogProps {
@@ -10,11 +12,14 @@ interface AuthDialogProps {
 
 export default function AuthDialog({ onClose }: AuthDialogProps) {
   const { signIn } = useAuthActions();
+  const updateProfile = useMutation(api.users.updateProfile);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
+    id: "",
+    phone: "",
     email: "",
     password: "",
   });
@@ -35,6 +40,21 @@ export default function AuthDialog({ onClose }: AuthDialogProps) {
       }
 
       await signIn("password", formDataToSend);
+
+      // After successful signup, update profile with ID and phone
+      if (isSignUp) {
+        try {
+          await updateProfile({
+            name: formData.name || undefined,
+            id: formData.id || undefined,
+            phone: formData.phone || undefined,
+          });
+        } catch (profileErr) {
+          // Log error but don't fail signup if profile update fails
+          console.error("Failed to update profile:", profileErr);
+        }
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || "Authentication failed");
@@ -97,24 +117,61 @@ export default function AuthDialog({ onClose }: AuthDialogProps) {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {isSignUp && (
-              <div className="animate-fade-up">
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
-                  placeholder="John Doe"
-                  autoComplete="name"
-                />
-              </div>
+              <>
+                <div className="animate-fade-up">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
+                    placeholder="John Doe"
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+                <div className="animate-fade-up animation-delay-1">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+                    ID Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, id: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
+                    placeholder="1234567890"
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+                <div className="animate-fade-up animation-delay-2">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
+                    placeholder="+1234567890"
+                    autoComplete="tel"
+                    required
+                  />
+                </div>
+              </>
             )}
 
-            <div className="animate-fade-up animation-delay-1">
+            <div
+              className={`animate-fade-up ${isSignUp ? "animation-delay-3" : "animation-delay-1"}`}
+            >
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
                 Email Address
               </label>
@@ -131,7 +188,9 @@ export default function AuthDialog({ onClose }: AuthDialogProps) {
               />
             </div>
 
-            <div className="animate-fade-up animation-delay-2">
+            <div
+              className={`animate-fade-up ${isSignUp ? "animation-delay-4" : "animation-delay-2"}`}
+            >
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
                 Password
               </label>
@@ -157,7 +216,7 @@ export default function AuthDialog({ onClose }: AuthDialogProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.32)] disabled:cursor-not-allowed disabled:opacity-50 animate-fade-up animation-delay-3"
+              className={`relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.32)] disabled:cursor-not-allowed disabled:opacity-50 animate-fade-up ${isSignUp ? "animation-delay-5" : "animation-delay-3"}`}
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -173,11 +232,33 @@ export default function AuthDialog({ onClose }: AuthDialogProps) {
           </form>
 
           {/* Toggle sign up/sign in */}
-          <div className="mt-6 text-center animate-fade-up animation-delay-4">
+          <div
+            className={`mt-6 text-center animate-fade-up ${isSignUp ? "animation-delay-6" : "animation-delay-4"}`}
+          >
             <button
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError("");
+                // Reset form data when switching modes
+                if (!isSignUp) {
+                  // Switching to signup - reset all fields
+                  setFormData({
+                    name: "",
+                    id: "",
+                    phone: "",
+                    email: "",
+                    password: "",
+                  });
+                } else {
+                  // Switching to signin - keep email, reset others
+                  setFormData({
+                    name: "",
+                    id: "",
+                    phone: "",
+                    email: formData.email,
+                    password: "",
+                  });
+                }
               }}
               className="text-sm font-medium text-slate-300 transition hover:text-indigo-300"
             >

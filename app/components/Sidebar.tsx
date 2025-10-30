@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  User,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import AuthDialog from "./AuthDialog";
@@ -266,6 +267,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     />
                     <div className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-xl border border-white/10 bg-slate-900/90 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.45)] backdrop-blur-xl space-y-2">
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-60" />
+                      <Link
+                        href="/profile"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex w-full items-center gap-2 rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                      >
+                        <User className="h-4 w-4" strokeWidth={1.8} />
+                        Profile Settings
+                      </Link>
                       <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-2">
                         <span className="text-sm font-semibold text-slate-300">
                           Theme

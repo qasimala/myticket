@@ -123,3 +123,24 @@ npx convex deploy
 ```
 
 This will give you a production Convex URL to use in your Vercel deployment.
+
+## Mobile (Capacitor) Build
+
+The Android shell is powered by Capacitor and loads the hosted Next.js site in a web view.
+
+1. Set the web app URL in an env file (loaded from `.env.capacitor.local`, `.env.capacitor`, `.env.local`, or `.env`). Example:
+
+```
+CAP_SERVER_URL=https://your-web-app.example.com/
+```
+
+2. Sync the Capacitor project and build the APK (the script automatically loads the env files listed above):
+
+   ```powershell
+   npm run mobile:sync
+   npm run mobile:build-apk
+   ```
+
+3. The debug APK is generated at `android\app\build\outputs\apk\debug\app-debug.apk`.
+
+If you omit `CAP_SERVER_URL`, the app shows a static placeholder page bundled in `public/index.html`. Replace it only if you need limited offline behaviour.

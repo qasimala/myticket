@@ -413,6 +413,9 @@ export const getBooking = query({
 // Mutation to checkout (create bookings from cart)
 export const checkout = mutation({
   args: {
+    customerName: v.string(),
+    customerId: v.optional(v.string()),
+    customerPhone: v.optional(v.string()),
     customerEmail: v.string(),
   },
   handler: async (ctx, args) => {
@@ -456,7 +459,9 @@ export const checkout = mutation({
         status: "pending",
         paymentStatus: "pending",
         bookingDate: Date.now(),
-        customerName: "Customer", // Default name since we don't collect it
+        customerName: args.customerName,
+        customerId: args.customerId,
+        customerPhone: args.customerPhone,
         customerEmail: args.customerEmail,
         scanned: false,
       });

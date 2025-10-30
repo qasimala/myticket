@@ -36,25 +36,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const getStatusColor = (status: string) => {
     switch (status) {
       case "published":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-green-500/20 text-green-200 border-green-500/30";
       case "draft":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-yellow-500/20 text-yellow-200 border-yellow-500/30";
       case "cancelled":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-red-500/20 text-red-200 border-red-500/30";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-slate-500/20 text-slate-200 border-slate-500/30";
     }
   };
 
   if (event === undefined || tickets === undefined) {
     return (
       <MainLayout>
-        <div className="p-6 lg:p-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-96 bg-gray-200 rounded-lg"></div>
-            <div className="h-12 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-          </div>
+        <div className="animate-pulse space-y-6">
+          <div className="h-96 bg-slate-800 rounded-lg"></div>
+          <div className="h-12 bg-slate-800 rounded w-3/4"></div>
+          <div className="h-6 bg-slate-800 rounded w-1/2"></div>
         </div>
       </MainLayout>
     );
@@ -63,22 +61,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   if (!event) {
     return (
       <MainLayout>
-        <div className="p-6 lg:p-8">
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">❌</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Event Not Found
-            </h3>
-            <p className="text-gray-600 mb-6">
-              The event you're looking for doesn't exist
-            </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
-            >
-              Back to Events
-            </Link>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+            ❌
           </div>
+          <h3 className="mt-6 text-2xl font-semibold">Event Not Found</h3>
+          <p className="mt-3 text-sm text-red-100/80">
+            The event you're looking for doesn't exist
+          </p>
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/50"
+          >
+            Back to Events
+          </Link>
         </div>
       </MainLayout>
     );
@@ -119,11 +115,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <MainLayout>
-      <div className="p-6 lg:p-8">
+      <div>
         {/* Back button */}
         <Link
           href="/"
-          className="inline-flex items-center text-gray-600 hover:text-indigo-600 mb-6 font-medium transition-colors"
+          className="inline-flex items-center text-slate-400 hover:text-indigo-400 mb-6 font-medium transition-colors"
         >
           <svg
             className="w-5 h-5 mr-2"
@@ -142,7 +138,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </Link>
 
         {/* Hero Section with Event Image and Basic Details */}
-        <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+        <div className="relative border border-white/10 bg-slate-900/80 rounded-2xl shadow-xl overflow-hidden mb-8">
           {event.imageUrl && (
             <div className="relative h-96 w-full">
               <img
@@ -164,7 +160,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <h1 className="text-5xl font-bold mb-3 drop-shadow-lg">
                   {event.name}
                 </h1>
-                <p className="text-xl text-gray-100 drop-shadow-md max-w-3xl">
+                <p className="text-xl text-slate-200 drop-shadow-md max-w-3xl">
                   {event.description}
                 </p>
               </div>
@@ -182,48 +178,48 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   {event.status.toUpperCase()}
                 </span>
               </div>
-              <h1 className="text-5xl font-bold text-gray-900 mb-3">
+              <h1 className="text-5xl font-bold text-slate-50 mb-3">
                 {event.name}
               </h1>
-              <p className="text-xl text-gray-600 max-w-3xl">
+              <p className="text-xl text-slate-300 max-w-3xl">
                 {event.description}
               </p>
             </div>
           )}
 
           {/* Quick Info Cards */}
-          <div className="grid md:grid-cols-3 gap-6 p-8 bg-gradient-to-br from-gray-50 to-white">
-            <div className="flex items-start gap-4 p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="grid md:grid-cols-3 gap-6 p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/80">
+            <div className="flex items-start gap-4 p-5 bg-slate-800 rounded-xl shadow-sm border border-white/10 hover:shadow-lg transition-shadow">
               <div className="text-4xl">📅</div>
               <div>
-                <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-1">
                   Date & Time
                 </div>
-                <div className="text-gray-900 font-medium">{formatDate(event.date)}</div>
+                <div className="text-slate-100 font-medium">{formatDate(event.date)}</div>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-start gap-4 p-5 bg-slate-800 rounded-xl shadow-sm border border-white/10 hover:shadow-lg transition-shadow">
               <div className="text-4xl">📍</div>
               <div>
-                <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-1">
                   Location
                 </div>
-                <div className="text-gray-900 font-medium">{event.location}</div>
-                <div className="text-sm text-gray-600">{event.city}, {event.country}</div>
+                <div className="text-slate-100 font-medium">{event.location}</div>
+                <div className="text-sm text-slate-400">{event.city}, {event.country}</div>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-start gap-4 p-5 bg-slate-800 rounded-xl shadow-sm border border-white/10 hover:shadow-lg transition-shadow">
               <div className="text-4xl">🎫</div>
               <div>
-                <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-1">
                   Availability
                 </div>
-                <div className="text-gray-900 font-medium">
+                <div className="text-slate-100 font-medium">
                   {availableTickets} / {totalTickets} tickets
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-slate-400">
                   {soldTickets} sold
                 </div>
               </div>
@@ -232,13 +228,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Section Navigation */}
-        <div className="bg-white rounded-xl shadow-md p-2 mb-8 flex gap-2 overflow-x-auto">
+        <div className="bg-slate-800/50 rounded-xl shadow-md p-2 mb-8 flex gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveSection("tickets")}
             className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
               activeSection === "tickets"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-slate-300 hover:bg-slate-700/50"
             }`}
           >
             🎫 Tickets
@@ -248,7 +244,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
               activeSection === "about"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-slate-300 hover:bg-slate-700/50"
             }`}
           >
             📝 About
@@ -258,7 +254,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
               activeSection === "accessibility"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-slate-300 hover:bg-slate-700/50"
             }`}
           >
             ♿ Accessibility
@@ -268,7 +264,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
               activeSection === "faqs"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
+                : "text-slate-300 hover:bg-slate-700/50"
             }`}
           >
             ❓ FAQs
@@ -276,14 +272,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Content Sections */}
-        <div className="bg-white rounded-xl shadow-md p-8">
+        <div className="border border-white/10 bg-slate-900/80 rounded-xl shadow-md p-8">
           {/* Tickets Section */}
           {activeSection === "tickets" && (
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Available Tickets</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">Available Tickets</h2>
 
               {tickets.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">🎫</div>
                   <p className="text-lg">No ticket types available yet</p>
                 </div>
@@ -297,21 +293,21 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                     return (
                       <div
                         key={ticket._id}
-                        className="border-2 border-gray-200 rounded-xl p-6 hover:border-indigo-400 hover:shadow-lg transition-all"
+                        className="border-2 border-slate-700 rounded-xl p-6 hover:border-indigo-500 hover:shadow-lg transition-all"
                       >
                         <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
                           <div className="flex-1 w-full">
                             <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-2xl font-bold text-gray-900">
+                              <h3 className="text-2xl font-bold text-slate-100">
                                 {ticket.name}
                               </h3>
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
                                   ticket.status === "sold_out"
-                                    ? "bg-red-100 text-red-800"
+                                    ? "bg-red-500/20 text-red-200"
                                     : ticket.status === "available"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-gray-100 text-gray-800"
+                                    ? "bg-green-500/20 text-green-200"
+                                    : "bg-slate-500/20 text-slate-200"
                                 }`}
                               >
                                 {ticket.status === "sold_out"
@@ -321,23 +317,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                   : "Hidden"}
                               </span>
                             </div>
-                            <p className="text-gray-600 mb-4 text-lg">{ticket.description}</p>
+                            <p className="text-slate-300 mb-4 text-lg">{ticket.description}</p>
                             <div className="flex items-center gap-8">
                               <div>
-                                <div className="text-sm text-gray-500 font-semibold mb-1">Available</div>
-                                <div className="text-2xl font-bold text-gray-900">
+                                <div className="text-sm text-slate-400 font-semibold mb-1">Available</div>
+                                <div className="text-2xl font-bold text-slate-100">
                                   {availableCount}
-                                  <span className="text-sm text-gray-500 font-normal"> / {ticket.quantity}</span>
+                                  <span className="text-sm text-slate-400 font-normal"> / {ticket.quantity}</span>
                                 </div>
                               </div>
                               <div>
-                                <div className="text-sm text-gray-500 font-semibold mb-1">Sold</div>
-                                <div className="text-2xl font-bold text-indigo-600">{ticket.sold}</div>
+                                <div className="text-sm text-slate-400 font-semibold mb-1">Sold</div>
+                                <div className="text-2xl font-bold text-indigo-400">{ticket.sold}</div>
                               </div>
                             </div>
                           </div>
                           <div className="text-right w-full lg:w-auto">
-                            <div className="text-4xl font-bold text-indigo-600 mb-4">
+                            <div className="text-4xl font-bold text-indigo-400 mb-4">
                               {formatPrice(ticket.price)}
                             </div>
                             
@@ -348,7 +344,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                   <button
                                     onClick={() => updateQuantity(ticket._id, -1)}
                                     disabled={quantity <= 1}
-                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                                    className="w-10 h-10 rounded-lg border-2 border-slate-600 flex items-center justify-center hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                                   >
                                     −
                                   </button>
@@ -358,7 +354,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                                   <button
                                     onClick={() => updateQuantity(ticket._id, 1)}
                                     disabled={quantity >= availableCount}
-                                    className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                                    className="w-10 h-10 rounded-lg border-2 border-slate-600 flex items-center justify-center hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                                   >
                                     +
                                   </button>
@@ -377,13 +373,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                               <div className="text-center">
                                 <Link
                                   href="/"
-                                  className="inline-block px-8 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                                  className="inline-block px-8 py-3 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors font-semibold"
                                 >
                                   Sign in to Book
                                 </Link>
                               </div>
                             ) : (
-                              <div className="px-8 py-3 bg-red-100 text-red-700 rounded-lg font-semibold text-center">
+                              <div className="px-8 py-3 bg-red-500/20 text-red-200 rounded-lg font-semibold text-center">
                                 Sold Out
                               </div>
                             )}
@@ -400,13 +396,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* About Section */}
           {activeSection === "about" && (
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">About This Event</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">About This Event</h2>
               {event.about ? (
-                <div className="prose prose-lg max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">{event.about}</p>
+                <div className="prose prose-lg max-w-none text-slate-300">
+                  <p className="leading-relaxed whitespace-pre-line">{event.about}</p>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">📝</div>
                   <p className="text-lg">No additional information available</p>
                 </div>
@@ -417,13 +413,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* Accessibility Section */}
           {activeSection === "accessibility" && (
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Accessibility Information</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">Accessibility Information</h2>
               {event.accessibility ? (
-                <div className="prose prose-lg max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">{event.accessibility}</p>
+                <div className="prose prose-lg max-w-none text-slate-300">
+                  <p className="leading-relaxed whitespace-pre-line">{event.accessibility}</p>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">♿</div>
                   <p className="text-lg">No accessibility information available</p>
                   <p className="text-sm mt-2">Contact the organizers for specific accessibility questions</p>
@@ -435,25 +431,25 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* FAQs Section */}
           {activeSection === "faqs" && (
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">Frequently Asked Questions</h2>
               {faqs.length > 0 ? (
                 <div className="space-y-4">
                   {faqs.map((faq, index) => (
                     <div
                       key={index}
-                      className="border border-gray-200 rounded-xl p-6 hover:border-indigo-300 hover:shadow-md transition-all"
+                      className="border border-slate-700 rounded-xl p-6 hover:border-indigo-500 hover:shadow-md transition-all"
                     >
-                      <h3 className="text-xl font-bold text-gray-900 mb-3">
+                      <h3 className="text-xl font-bold text-slate-100 mb-3">
                         Q: {faq.question}
                       </h3>
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-slate-300 leading-relaxed">
                         A: {faq.answer}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">❓</div>
                   <p className="text-lg">No FAQs available yet</p>
                   <p className="text-sm mt-2">Check back later for answers to common questions</p>

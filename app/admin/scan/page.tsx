@@ -27,10 +27,8 @@ export default function AdminScanPage() {
 
   if (currentUser === undefined) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="flex h-48 items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-        </div>
+      <div className="flex h-48 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400 border-t-transparent"></div>
       </div>
     );
   }
@@ -40,22 +38,20 @@ export default function AdminScanPage() {
     (currentUser.role !== "admin" && currentUser.role !== "superadmin")
   ) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="mx-auto max-w-xl rounded-2xl bg-white p-10 text-center shadow-lg">
-          <div className="text-6xl mb-4">🚫</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Access Restricted
-          </h2>
-          <p className="text-gray-600">
-            Only administrators can access the ticket scanner.
-          </p>
-          <Link
-            href="/admin"
-            className="mt-6 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-          >
-            Back to Admin
-          </Link>
-        </div>
+      <div className="mx-auto max-w-xl rounded-2xl border border-red-500/20 bg-red-500/10 p-10 text-center shadow-lg">
+        <div className="text-6xl mb-4">🚫</div>
+        <h2 className="text-2xl font-bold text-red-100 mb-2">
+          Access Restricted
+        </h2>
+        <p className="text-red-200/80">
+          Only administrators can access the ticket scanner.
+        </p>
+        <Link
+          href="/admin"
+          className="mt-6 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+        >
+          Back to Admin
+        </Link>
       </div>
     );
   }
@@ -101,7 +97,7 @@ export default function AdminScanPage() {
   const renderResult = () => {
     if (scanState.status === "idle") {
       return (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-slate-400">
           Scan a ticket to see the result here.
         </p>
       );
@@ -109,8 +105,8 @@ export default function AdminScanPage() {
 
     if (scanState.status === "scanning") {
       return (
-        <div className="flex items-center gap-3 text-indigo-600">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></div>
+        <div className="flex items-center gap-3 text-indigo-400">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-400"></div>
           <span className="text-sm font-medium">Validating ticket…</span>
         </div>
       );
@@ -118,7 +114,7 @@ export default function AdminScanPage() {
 
     if (scanState.status === "error") {
       return (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/20 p-4 text-red-200">
           <p className="font-semibold">Scan Failed</p>
           <p className="text-sm">{scanState.message}</p>
         </div>
@@ -128,43 +124,43 @@ export default function AdminScanPage() {
     const booking = scanState.booking;
     const badgeStyle =
       scanState.status === "success"
-        ? "bg-green-100 text-green-800 border-green-200"
-        : "bg-yellow-100 text-yellow-800 border-yellow-200";
+        ? "bg-green-500/20 text-green-200 border-green-500/30"
+        : "bg-yellow-500/20 text-yellow-200 border-yellow-500/30";
 
     return (
-      <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="space-y-4 rounded-lg border border-white/10 bg-slate-800/50 p-4 shadow-sm">
         <span
           className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}
         >
           {scanState.status === "success" ? "Ticket Valid" : "Ticket Already Used"}
         </span>
-        <div className="space-y-2 text-sm text-gray-700">
+        <div className="space-y-2 text-sm text-slate-300">
           <p>
-            <span className="font-semibold text-gray-900">Booking ID:</span>{" "}
+            <span className="font-semibold text-slate-100">Booking ID:</span>{" "}
             {booking.id as string}
           </p>
           <p>
-            <span className="font-semibold text-gray-900">Customer:</span>{" "}
+            <span className="font-semibold text-slate-100">Customer:</span>{" "}
             {(booking.customerName as string) ?? "Unknown"}
           </p>
           <p>
-            <span className="font-semibold text-gray-900">Email:</span>{" "}
+            <span className="font-semibold text-slate-100">Email:</span>{" "}
             {(booking.customerEmail as string) ?? "—"}
           </p>
           <p>
-            <span className="font-semibold text-gray-900">Event:</span>{" "}
+            <span className="font-semibold text-slate-100">Event:</span>{" "}
             {(booking.eventName as string) ?? "—"}
           </p>
           <p>
-            <span className="font-semibold text-gray-900">Ticket:</span>{" "}
+            <span className="font-semibold text-slate-100">Ticket:</span>{" "}
             {(booking.ticketName as string) ?? "—"}
           </p>
           <p>
-            <span className="font-semibold text-gray-900">Quantity:</span>{" "}
+            <span className="font-semibold text-slate-100">Quantity:</span>{" "}
             {booking.quantity as number}
           </p>
           {booking.scannedAt && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-slate-400">
               Marked scanned at:{" "}
               {new Date(booking.scannedAt as number).toLocaleString()}
             </p>
@@ -181,73 +177,71 @@ export default function AdminScanPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="mx-auto max-w-3xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ticket Scanner</h1>
-          <p className="mt-2 text-gray-600">
-            Focus the input below and scan a live QR code. Physical scanners
-            will type the token and submit automatically.
-          </p>
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700">
-            <span className="h-2 w-2 rounded-full bg-indigo-600"></span>
-            Live verification with duplicate protection
-          </div>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-50">Ticket Scanner</h1>
+        <p className="mt-2 text-slate-400">
+          Focus the input below and scan a live QR code. Physical scanners
+          will type the token and submit automatically.
+        </p>
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-500/20 px-4 py-2 text-xs font-semibold text-indigo-300">
+          <span className="h-2 w-2 rounded-full bg-indigo-400"></span>
+          Live verification with duplicate protection
         </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-        >
-          <label
-            htmlFor="qr-token"
-            className="block text-sm font-semibold text-gray-700"
-          >
-            Scan or paste QR token
-          </label>
-          <input
-            id="qr-token"
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(event) => setInputValue(event.target.value)}
-            placeholder="Focus here and scan the code"
-            autoComplete="off"
-            disabled={isProcessing}
-            className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-base shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-50"
-          />
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isProcessing || !inputValue.trim()}
-              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isProcessing ? "Processing..." : "Validate Ticket"}
-            </button>
-            <button
-              type="button"
-              onClick={resetScanState}
-              className="text-sm font-medium text-gray-500 hover:text-gray-700"
-            >
-              Clear
-            </button>
-          </div>
-        </form>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Scan Result
-          </h2>
-          {renderResult()}
-        </div>
-
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100"
-        >
-          Back to Admin Dashboard
-        </Link>
       </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl border border-white/10 bg-slate-900/80 p-6 shadow-lg"
+      >
+        <label
+          htmlFor="qr-token"
+          className="block text-sm font-semibold text-slate-300"
+        >
+          Scan or paste QR token
+        </label>
+        <input
+          id="qr-token"
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(event) => setInputValue(event.target.value)}
+          placeholder="Focus here and scan the code"
+          autoComplete="off"
+          disabled={isProcessing}
+          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-slate-100 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+        />
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={isProcessing || !inputValue.trim()}
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isProcessing ? "Processing..." : "Validate Ticket"}
+          </button>
+          <button
+            type="button"
+            onClick={resetScanState}
+            className="text-sm font-medium text-slate-400 hover:text-slate-300"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <div className="rounded-xl border border-white/10 bg-slate-900/80 p-6 shadow-lg">
+        <h2 className="text-lg font-semibold text-slate-100 mb-3">
+          Scan Result
+        </h2>
+        {renderResult()}
+      </div>
+
+      <Link
+        href="/admin"
+        className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-800"
+      >
+        Back to Admin Dashboard
+      </Link>
     </div>
   );
 }

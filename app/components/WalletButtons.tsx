@@ -5,35 +5,75 @@ import { Smartphone, CheckCircle2 } from "lucide-react";
 
 interface WalletButtonsProps {
   bookingId: string;
+  eventId?: string;
   eventName?: string;
   eventDate?: string;
   eventLocation?: string;
+  ticketName?: string;
+  customerName?: string;
   qrValue?: string;
 }
 
 export default function WalletButtons({
   bookingId,
+  eventId,
   eventName,
   eventDate,
   eventLocation,
+  ticketName,
+  customerName,
   qrValue,
 }: WalletButtonsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAddToGoogleWallet = async () => {
     setIsGenerating(true);
+    setError(null);
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch("/api/wallet/google", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId,
+          eventId,
+          eventName,
+          eventDate,
+          eventLocation,
+          ticketName,
+          customerName,
+          qrValue,
+        }),
+      });
 
-    setIsGenerating(false);
-    setIsAdded(true);
+      const data = await response.json();
 
-    // Reset success state after 5 seconds
-    setTimeout(() => {
-      setIsAdded(false);
-    }, 5000);
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to add pass to Google Wallet");
+      }
+
+      if (!data?.saveUrl) {
+        throw new Error("Wallet service returned an unexpected response");
+      }
+
+      window.open(data.saveUrl as string, "_blank", "noopener,noreferrer");
+
+      setIsAdded(true);
+
+      setTimeout(() => {
+        setIsAdded(false);
+      }, 5000);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -73,6 +113,9 @@ export default function WalletButtons({
         <p className="text-xs text-slate-500 text-center">
           Please wait for the QR code to load before adding to wallet
         </p>
+      )}
+      {error && (
+        <p className="text-xs text-red-400 text-center">{error}</p>
       )}
     </div>
   );

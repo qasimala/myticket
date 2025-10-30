@@ -501,6 +501,7 @@ export default function BookingConfirmationPage() {
                       <div className="mt-8 w-full">
                         <WalletButtons
                           bookingId={booking._id}
+                          eventId={booking.event?._id}
                           eventName={booking.event?.name}
                           eventDate={booking.event?.date}
                           eventLocation={
@@ -508,6 +509,8 @@ export default function BookingConfirmationPage() {
                               ? `${booking.event.location}, ${booking.event.city}`
                               : undefined
                           }
+                          ticketName={booking.ticket?.name}
+                          customerName={booking.customerName}
                           qrValue={qrData.value}
                         />
                       </div>

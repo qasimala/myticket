@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -161,10 +162,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               onClick={onClose}
             >
               <div className="relative flex h-11 w-11 items-center justify-center">
-                <span className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 opacity-80 blur-md transition group-hover:opacity-100" />
-                <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/80 text-lg font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.26)]">
-                  MT
-                </span>
+                <Image
+                  src="/myticket_logo.png"
+                  alt="MyTicket"
+                  width={44}
+                  height={44}
+                  className="object-contain"
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">

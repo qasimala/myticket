@@ -1,12 +1,18 @@
 "use client";
 
-import { use } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { use, useEffect, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 import QRCode from "react-qr-code";
+
+type QrData = {
+  value: string;
+  expiresAt: number;
+  windowMs: number;
+};
 
 export default function BookingConfirmationPage({
   params,
@@ -18,6 +24,12 @@ export default function BookingConfirmationPage({
   const booking = useQuery(api.bookings.getBooking, { bookingId });
   const currentUser = useQuery(api.users.current);
   const updateScanStatus = useMutation(api.bookings.setScannedStatus);
+  const generateQrToken = useAction(api.bookings.generateQrToken);
+
+  const [qrData, setQrData] = useState<QrData | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [tokenRefreshKey, setTokenRefreshKey] = useState(0);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -43,6 +55,78 @@ export default function BookingConfirmationPage({
       minute: "2-digit",
     });
   };
+
+  useEffect(() => {
+    if (booking === undefined) {
+      return;
+    }
+
+    if (!booking) {
+      setQrData(null);
+      setQrError(null);
+      return;
+    }
+
+    if (booking.scanned) {
+      setQrData(null);
+      setQrError(null);
+      return;
+    }
+
+    let cancelled = false;
+    let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+    const fetchToken = async () => {
+      try {
+        const result = await generateQrToken({ bookingId });
+        if (cancelled) return;
+        setQrData({
+          value: result.qrValue,
+          expiresAt: result.expiresAt,
+          windowMs: result.windowMs,
+        });
+        setQrError(null);
+        setNow(Date.now());
+
+        if (refreshTimer) {
+          clearInterval(refreshTimer);
+        }
+
+        const refreshDelay = Math.max(2000, result.windowMs - 2000);
+        refreshTimer = setInterval(() => {
+          fetchToken();
+        }, refreshDelay);
+      } catch (error: any) {
+        if (cancelled) return;
+        setQrError(error.message || "Failed to refresh QR code");
+        if (refreshTimer) {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+        }
+      }
+    };
+
+    fetchToken();
+
+    return () => {
+      cancelled = true;
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+    };
+  }, [booking, bookingId, generateQrToken, tokenRefreshKey]);
+
+  useEffect(() => {
+    if (!qrData || booking?.scanned) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [qrData, booking?.scanned]);
 
   if (booking === undefined) {
     return (
@@ -92,12 +176,12 @@ export default function BookingConfirmationPage({
       })
     : null;
 
-  const qrValue = JSON.stringify({
-    bookingId: booking._id,
-    ticketId: booking.ticketId,
-    token: booking.paymentId ?? booking._id,
-    quantity: booking.quantity,
-  });
+  const refreshSeconds =
+    qrData && !isScanned ? Math.round(qrData.windowMs / 1000) : null;
+  const remainingSeconds =
+    qrData && !isScanned
+      ? Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000))
+      : null;
 
   const canManageScan =
     !!currentUser &&
@@ -108,6 +192,12 @@ export default function BookingConfirmationPage({
   const handleScanUpdate = async (nextState: boolean) => {
     try {
       await updateScanStatus({ bookingId, scanned: nextState });
+      if (nextState) {
+        setQrData(null);
+      } else {
+        setQrError(null);
+        setTokenRefreshKey((key) => key + 1);
+      }
     } catch (error: any) {
       alert(error.message || "Failed to update ticket status");
     }
@@ -147,13 +237,35 @@ export default function BookingConfirmationPage({
                       The QR code is no longer valid for entry.
                     </p>
                   </div>
+                ) : qrError ? (
+                  <div className="w-full rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-center">
+                    <p className="text-lg font-semibold text-red-700">
+                      {qrError}
+                    </p>
+                    <button
+                      onClick={() => setTokenRefreshKey((key) => key + 1)}
+                      className="mt-4 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : !qrData ? (
+                  <div className="flex h-48 w-full items-center justify-center">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+                  </div>
                 ) : (
                   <div className="inline-flex flex-col items-center rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <QRCode value={qrValue} size={192} />
+                    <QRCode value={qrData.value} size={192} />
                     <p className="mt-4 text-center text-sm text-gray-500">
-                      Present this code at the entrance. It becomes invalid as
-                      soon as the ticket is scanned.
+                      Present this animated QR code at the entrance. Screenshots
+                      expire quickly.
                     </p>
+                    {remainingSeconds !== null && refreshSeconds !== null && (
+                      <p className="mt-2 text-center text-xs text-gray-400">
+                        Valid for {remainingSeconds}s · Refreshes every{" "}
+                        {refreshSeconds}s
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

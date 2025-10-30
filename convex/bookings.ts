@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { action, internalQuery, mutation, query } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
 import { getCurrentUser } from "./users";
 
@@ -214,5 +215,108 @@ export const setScannedStatus = mutation({
       scanned: args.scanned,
       scannedAt: args.scanned ? Date.now() : undefined,
     });
+  },
+});
+
+export const getBookingForQr = internalQuery({
+  args: {
+    bookingId: v.id("bookings"),
+  },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) {
+      return null;
+    }
+
+    const event = await ctx.db.get(booking.eventId);
+    const ticket = await ctx.db.get(booking.ticketId);
+
+    return {
+      booking,
+      event,
+      ticket,
+    };
+  },
+});
+
+export const generateQrToken = action({
+  args: {
+    bookingId: v.id("bookings"),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ qrValue: string; expiresAt: number; windowMs: number }> => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Must be signed in");
+
+    const result = await ctx.runQuery(internal.bookings.getBookingForQr, {
+      bookingId: args.bookingId,
+    });
+    if (!result) throw new Error("Booking not found");
+
+    const { booking, event } = result;
+
+    if (booking.scanned) {
+      throw new Error("Ticket already used");
+    }
+
+    if (!event) throw new Error("Event not found");
+
+    const currentUser = await ctx.runQuery(api.users.current, {});
+    const isBookingOwner = booking.userId === userId;
+    const isEventOwner =
+      currentUser && event.createdBy === currentUser._id;
+    const isPrivileged =
+      currentUser &&
+      (currentUser.role === "admin" || currentUser.role === "superadmin");
+
+    if (!isBookingOwner && !isEventOwner && !isPrivileged) {
+      throw new Error("Not authorized to generate QR token");
+    }
+
+    const secret = process.env.QR_SECRET;
+    if (!secret) {
+      throw new Error("QR_SECRET environment variable not configured");
+    }
+
+    const windowMs = 15_000;
+    const timeSlot = Math.floor(Date.now() / windowMs);
+    const payloadBase = `${booking._id}:${booking.ticketId}:${timeSlot}`;
+
+    const encoder = new TextEncoder();
+    const keyMaterial = encoder.encode(secret);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyMaterial,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signatureBuffer = await crypto.subtle.sign(
+      "HMAC",
+      cryptoKey,
+      encoder.encode(payloadBase)
+    );
+    const signature = Array.from(new Uint8Array(signatureBuffer))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+
+    const payload = {
+      bookingId: booking._id,
+      ticketId: booking.ticketId,
+      ts: timeSlot,
+      sig: signature,
+    };
+
+    const qrValue = JSON.stringify(payload);
+
+    const expiresAt = (timeSlot + 1) * windowMs;
+
+    return {
+      qrValue,
+      expiresAt,
+      windowMs,
+    };
   },
 });

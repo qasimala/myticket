@@ -368,6 +368,46 @@ body {
   z-index: 1;
 }
 
+.qr-progress {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  --ring-width: 0.75rem;
+}
+
+.qr-progress::before,
+.qr-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--ring-width);
+  mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.qr-progress::before {
+  background: rgba(79, 70, 229, 0.16);
+  z-index: 0;
+}
+
+.qr-progress::after {
+  background: conic-gradient(
+    #4f46e5 calc(var(--progress, 1) * 360deg),
+    transparent 0deg
+  );
+  z-index: 1;
+}
+
+.qr-progress > * {
+  position: relative;
+  z-index: 2;
+}
+
 .spotlight {
   position: relative;
 }

@@ -35,6 +35,10 @@ export default function BookingConfirmationPage() {
   const [qrError, setQrError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const fetchingRef = useRef(false);
+  const progressRef = useRef<HTMLDivElement | null>(null);
+  const progressAnimationRef = useRef<number | null>(null);
+
+  const isScanned = Boolean(booking?.scanned);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -133,16 +137,71 @@ export default function BookingConfirmationPage() {
   }, [booking, requestTokens]);
 
   useEffect(() => {
-    if (!qrData || booking?.scanned) {
+    if (!qrData || isScanned) {
       return;
     }
 
     const interval = setInterval(() => {
       setNow(Date.now());
-    }, 1000 / 30);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [qrData, booking?.scanned]);
+  }, [qrData, isScanned]);
+
+  useEffect(() => {
+    const node = progressRef.current;
+
+    if (progressAnimationRef.current !== null) {
+      cancelAnimationFrame(progressAnimationRef.current);
+      progressAnimationRef.current = null;
+    }
+
+    if (!node) {
+      return;
+    }
+
+    if (!qrData || isScanned) {
+      node.style.setProperty("--progress", "0");
+      return;
+    }
+
+    const totalDuration = qrData.windowMs;
+    if (!totalDuration) {
+      node.style.setProperty("--progress", "0");
+      return;
+    }
+
+    const end = qrData.expiresAt;
+
+    const tick = () => {
+      const remaining = Math.max(0, end - Date.now());
+      const progress = Math.min(
+        1,
+        Math.max(0, totalDuration > 0 ? remaining / totalDuration : 0)
+      );
+      node.style.setProperty("--progress", progress.toString());
+
+      if (remaining > 0 && !isScanned) {
+        progressAnimationRef.current = requestAnimationFrame(tick);
+      } else {
+        if (progressAnimationRef.current !== null) {
+          cancelAnimationFrame(progressAnimationRef.current);
+          progressAnimationRef.current = null;
+        }
+        node.style.setProperty("--progress", "0");
+      }
+    };
+
+    node.style.setProperty("--progress", "1");
+    progressAnimationRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (progressAnimationRef.current !== null) {
+        cancelAnimationFrame(progressAnimationRef.current);
+        progressAnimationRef.current = null;
+      }
+    };
+  }, [qrData, isScanned]);
 
   useEffect(() => {
     if (!qrQueue.length) {
@@ -222,7 +281,6 @@ export default function BookingConfirmationPage() {
     );
   }
 
-  const isScanned = Boolean(booking.scanned);
   const scannedAt = booking.scannedAt
     ? new Date(booking.scannedAt).toLocaleDateString("en-US", {
         year: "numeric",
@@ -241,8 +299,6 @@ export default function BookingConfirmationPage() {
     remainingSeconds !== null && refreshSeconds !== null && refreshSeconds > 0
       ? Math.max(0, Math.min(100, (remainingSeconds / refreshSeconds) * 100))
       : null;
-  const gradientDegrees =
-    progressPercent !== null ? (progressPercent / 100) * 360 : null;
   const remainingSecondsDisplay =
     remainingSeconds !== null ? Math.ceil(remainingSeconds) : null;
 
@@ -422,24 +478,12 @@ export default function BookingConfirmationPage() {
                 ) : (
                   <div className="relative inline-flex flex-col items-center">
                     <div
-                      className="relative inline-flex items-center justify-center rounded-3xl p-4 transition-all duration-200"
-                      style={
-                        gradientDegrees !== null
-                          ? {
-                              background: `conic-gradient(#4f46e5 ${gradientDegrees}deg, rgba(79,70,229,0.1) ${gradientDegrees}deg 360deg)`,
-                            }
-                          : undefined
-                      }
+                      ref={progressRef}
+                      className="qr-progress relative inline-flex items-center justify-center rounded-3xl p-4 transition-all duration-200"
                     >
                       <div className="rounded-2xl bg-white p-4 shadow-inner">
                         <QRCode value={qrData.value} size={220} />
                       </div>
-                      {progressPercent !== null && (
-                        <span className="absolute -top-2 right-2 flex h-4 w-4">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-4 w-4 rounded-full bg-indigo-500"></span>
-                        </span>
-                      )}
                     </div>
                     <p className="mt-6 text-center text-sm font-medium text-slate-300 max-w-sm">
                       Present this QR code at the entrance

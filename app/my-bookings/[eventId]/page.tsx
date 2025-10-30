@@ -38,6 +38,10 @@ export default function EventTicketsPage() {
   const [now, setNow] = useState(Date.now());
   const fetchingRefs = useRef<Map<string, boolean>>(new Map());
   const [qrErrors, setQrErrors] = useState<Map<string, string>>(new Map());
+  const progressRefs = useRef<Map<Id<"bookings">, HTMLDivElement | null>>(
+    new Map()
+  );
+  const progressAnimationRefs = useRef<Map<Id<"bookings">, number>>(new Map());
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -143,7 +147,7 @@ export default function EventTicketsPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(Date.now());
-    }, 1000 / 30);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -167,13 +171,21 @@ export default function EventTicketsPage() {
       const activeToken = validQueue[0];
       if (activeToken) {
         setQrDataMap((prev) => {
-          const newMap = new Map(prev);
-          if (
-            !newMap.has(bookingId) ||
-            newMap.get(bookingId)?.value !== activeToken.value
-          ) {
-            newMap.set(bookingId, activeToken);
+          const existing = prev.get(bookingId);
+          if (existing && existing.value === activeToken.value) {
+            return prev;
           }
+          const newMap = new Map(prev);
+          newMap.set(bookingId, activeToken);
+          return newMap;
+        });
+      } else {
+        setQrDataMap((prev) => {
+          if (!prev.has(bookingId)) {
+            return prev;
+          }
+          const newMap = new Map(prev);
+          newMap.delete(bookingId);
           return newMap;
         });
       }
@@ -192,6 +204,88 @@ export default function EventTicketsPage() {
       }
     });
   }, [eventBookings, qrQueues, requestTokens]);
+
+  useEffect(() => {
+    if (!eventBookings) return;
+
+    const frames = progressAnimationRefs.current;
+    const refs = progressRefs.current;
+
+    const cancelFrame = (bookingId: Id<"bookings">) => {
+      const frameId = frames.get(bookingId);
+      if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+        frames.delete(bookingId);
+      }
+    };
+
+    const activeIds = new Set<Id<"bookings">>();
+
+    eventBookings.forEach((booking) => {
+      const bookingId = booking._id;
+      const node = refs.get(bookingId);
+      const qrData = qrDataMap.get(bookingId);
+      const isScanned = Boolean(booking.scanned);
+
+      if (!node) {
+        cancelFrame(bookingId);
+        return;
+      }
+
+      if (!qrData || isScanned) {
+        cancelFrame(bookingId);
+        node.style.setProperty("--progress", "0");
+        return;
+      }
+
+      const totalDuration = qrData.windowMs;
+      if (!totalDuration) {
+        cancelFrame(bookingId);
+        node.style.setProperty("--progress", "0");
+        return;
+      }
+
+      const end = qrData.expiresAt;
+
+      cancelFrame(bookingId);
+
+      const tick = () => {
+        const remaining = Math.max(0, end - Date.now());
+        const progress = Math.min(
+          1,
+          Math.max(0, totalDuration > 0 ? remaining / totalDuration : 0)
+        );
+        node.style.setProperty("--progress", progress.toString());
+
+        if (remaining > 0 && !booking.scanned) {
+          const frameId = requestAnimationFrame(tick);
+          frames.set(bookingId, frameId);
+        } else {
+          frames.delete(bookingId);
+          node.style.setProperty("--progress", "0");
+        }
+      };
+
+      node.style.setProperty("--progress", "1");
+      const frameId = requestAnimationFrame(tick);
+      frames.set(bookingId, frameId);
+      activeIds.add(bookingId);
+    });
+
+    frames.forEach((frameId, bookingId) => {
+      if (!refs.has(bookingId) || !activeIds.has(bookingId)) {
+        cancelAnimationFrame(frameId);
+        frames.delete(bookingId);
+      }
+    });
+
+    return () => {
+      frames.forEach((frameId, bookingId) => {
+        cancelAnimationFrame(frameId);
+        frames.delete(bookingId);
+      });
+    };
+  }, [eventBookings, qrDataMap]);
 
   if (currentUser === undefined || eventBookings === undefined) {
     return (
@@ -335,10 +429,16 @@ export default function EventTicketsPage() {
                   Math.min(100, (remainingSeconds / refreshSeconds) * 100)
                 )
               : null;
-          const gradientDegrees =
-            progressPercent !== null ? (progressPercent / 100) * 360 : null;
           const remainingSecondsDisplay =
             remainingSeconds !== null ? Math.ceil(remainingSeconds) : null;
+
+          const handleProgressRef = (node: HTMLDivElement | null) => {
+            if (node) {
+              progressRefs.current.set(booking._id, node);
+            } else {
+              progressRefs.current.delete(booking._id);
+            }
+          };
 
           return (
             <div
@@ -430,24 +530,12 @@ export default function EventTicketsPage() {
                 ) : (
                   <div className="relative inline-flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/50 p-6">
                     <div
-                      className="relative inline-flex items-center justify-center rounded-2xl p-3 transition-all duration-200"
-                      style={
-                        gradientDegrees !== null
-                          ? {
-                              background: `conic-gradient(#4f46e5 ${gradientDegrees}deg, rgba(79,70,229,0.1) ${gradientDegrees}deg 360deg)`,
-                            }
-                          : undefined
-                      }
+                      ref={handleProgressRef}
+                      className="qr-progress relative inline-flex items-center justify-center rounded-2xl p-3 transition-all duration-200"
                     >
                       <div className="rounded-xl bg-white p-3 shadow-inner">
                         <QRCode value={qrData.value} size={192} />
                       </div>
-                      {progressPercent !== null && (
-                        <span className="absolute -top-2 right-2 flex h-3 w-3">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500"></span>
-                        </span>
-                      )}
                     </div>
                     <p className="mt-4 text-center text-sm text-slate-400">
                       Present this QR code at the entrance

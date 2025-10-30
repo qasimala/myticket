@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
+import { ShieldAlert } from "lucide-react";
 
 export default function AdminPanel() {
   const currentUser = useQuery(api.users.current);
@@ -26,12 +27,12 @@ export default function AdminPanel() {
   if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superadmin")) {
     return (
       <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
-          🚫
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl text-red-200">
+          <ShieldAlert className="h-8 w-8" />
         </div>
         <h2 className="mt-6 text-2xl font-semibold">Access Denied</h2>
         <p className="mt-3 text-sm text-red-100/80">
-          You don't have permission to access this page.
+          You don&apos;t have permission to access this page.
         </p>
       </div>
     );

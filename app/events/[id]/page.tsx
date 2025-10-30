@@ -1,17 +1,26 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
-export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const eventId = id as Id<"events">;
-  const event = useQuery(api.events.get, { id: eventId });
-  const tickets = useQuery(api.tickets.listByEvent, { eventId });
+export default function EventDetailPage() {
+  const params = useParams<{ id: string }>();
+  const idParam = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+
+  const eventId = idParam ? (idParam as Id<"events">) : null;
+  const event = useQuery(
+    api.events.get,
+    eventId ? { id: eventId } : "skip"
+  );
+  const tickets = useQuery(
+    api.tickets.listByEvent,
+    eventId ? { eventId } : "skip"
+  );
   const currentUser = useQuery(api.users.current);
   const addToCart = useMutation(api.cart.addToCart);
   const [activeSection, setActiveSection] = useState<"tickets" | "about" | "accessibility" | "faqs">("tickets");
@@ -32,6 +41,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
   };
+
+  const missingEventId = !eventId;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,7 +78,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
           <h3 className="mt-6 text-2xl font-semibold">Event Not Found</h3>
           <p className="mt-3 text-sm text-red-100/80">
-            The event you're looking for doesn't exist
+            The event you&apos;re looking for doesn&apos;t exist
           </p>
           <Link
             href="/"
@@ -98,8 +109,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       await addToCart({ ticketId, quantity });
       setTicketQuantities({ ...ticketQuantities, [ticketId]: 1 });
       // Show success feedback (you could add a toast notification here)
-    } catch (err: any) {
-      alert(err.message || "Failed to add to cart");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to add to cart";
+      alert(message);
     } finally {
       setAddingToCart(null);
     }
@@ -112,6 +125,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const newQuantity = Math.max(1, current + change);
     setTicketQuantities({ ...ticketQuantities, [ticketId]: newQuantity });
   };
+
+  if (missingEventId) {
+    return (
+      <MainLayout>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+            ❌
+          </div>
+          <h3 className="mt-6 text-2xl font-semibold">Event ID Missing</h3>
+          <p className="mt-3 text-sm text-red-100/80">
+            Please use a valid event link to view details.
+          </p>
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/50"
+          >
+            Back to Events
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { ShieldAlert } from "lucide-react";
 
 type ScanState =
   | { status: "idle" }
@@ -41,7 +42,9 @@ export default function AdminScanPage() {
   ) {
     return (
       <div className="mx-auto max-w-xl rounded-2xl border border-red-500/20 bg-red-500/10 p-10 text-center shadow-lg">
-        <div className="text-6xl mb-4">🚫</div>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-200">
+          <ShieldAlert className="h-10 w-10" />
+        </div>
         <h2 className="text-2xl font-bold text-red-100 mb-2">
           Access Restricted
         </h2>
@@ -130,7 +133,7 @@ export default function AdminScanPage() {
           placeholder="Focus here and scan the code"
           autoComplete="off"
           disabled={isProcessing}
-          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-slate-100 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-500/50 disabled:opacity-50"
+          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-slate-100 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
         />
         <div className="mt-4 flex items-center gap-3">
           <button

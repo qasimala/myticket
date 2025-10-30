@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import MainLayout from "../components/MainLayout";
 import Link from "next/link";
 
@@ -33,19 +34,31 @@ export default function MyBookingsPage() {
     });
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
+  const handleCancelBooking = async (bookingId: Id<"bookings">) => {
     if (
       confirm(
         "Are you sure you want to cancel this booking? This action cannot be undone."
       )
     ) {
       try {
-        await cancelBooking({ bookingId: bookingId as any });
+        await cancelBooking({ bookingId });
       } catch (err: any) {
         alert(err.message || "Failed to cancel booking");
       }
     }
   };
+
+  if (currentUser === undefined || bookings === undefined) {
+    return (
+      <MainLayout>
+        <div className="animate-pulse space-y-4">
+          <div className="h-12 bg-slate-800 rounded w-1/4"></div>
+          <div className="h-32 bg-slate-800 rounded"></div>
+          <div className="h-32 bg-slate-800 rounded"></div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   if (!currentUser) {
     return (
@@ -58,18 +71,6 @@ export default function MyBookingsPage() {
           <p className="mt-3 text-sm text-red-100/80">
             Please sign in to view your bookings
           </p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (bookings === undefined) {
-    return (
-      <MainLayout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-slate-800 rounded w-1/4"></div>
-          <div className="h-32 bg-slate-800 rounded"></div>
-          <div className="h-32 bg-slate-800 rounded"></div>
         </div>
       </MainLayout>
     );
@@ -211,4 +212,3 @@ export default function MyBookingsPage() {
     </MainLayout>
   );
 }
-

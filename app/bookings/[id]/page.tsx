@@ -1,12 +1,13 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 import QRCode from "react-qr-code";
+import { useParams } from "next/navigation";
 
 type QrData = {
   value: string;
@@ -14,14 +15,15 @@ type QrData = {
   windowMs: number;
 };
 
-export default function BookingConfirmationPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const bookingId = id as Id<"bookings">;
-  const booking = useQuery(api.bookings.getBooking, { bookingId });
+export default function BookingConfirmationPage() {
+  const params = useParams<{ id: string }>();
+  const idParam = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+
+  const bookingId = idParam ? (idParam as Id<"bookings">) : null;
+  const booking = useQuery(
+    api.bookings.getBooking,
+    bookingId ? { bookingId } : "skip"
+  );
   const currentUser = useQuery(api.users.current);
   const updateScanStatus = useMutation(api.bookings.setScannedStatus);
   const generateQrToken = useAction(api.bookings.generateQrToken);
@@ -58,8 +60,11 @@ export default function BookingConfirmationPage({
     });
   };
 
+  const missingBookingId = !bookingId;
+
   const requestTokens = useCallback(
     async (force = false) => {
+      if (!bookingId) return;
       if (fetchingRef.current) return;
       if (booking === undefined || !booking) return;
       if (booking.scanned && !force) return;
@@ -98,8 +103,10 @@ export default function BookingConfirmationPage({
         }
 
         setQrError(null);
-      } catch (error: any) {
-        setQrError(error.message || "Failed to refresh QR code");
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Failed to refresh QR code";
+        setQrError(message);
       } finally {
         fetchingRef.current = false;
       }
@@ -199,7 +206,7 @@ export default function BookingConfirmationPage({
           </div>
           <h3 className="mt-6 text-2xl font-semibold">Booking Not Found</h3>
           <p className="mt-3 text-sm text-red-100/80">
-            The booking you're looking for doesn't exist
+            The booking you&apos;re looking for doesn&apos;t exist
           </p>
           <Link
             href="/"
@@ -248,6 +255,7 @@ export default function BookingConfirmationPage({
       (booking.event && booking.event.createdBy === currentUser._id));
 
   const handleScanUpdate = async (nextState: boolean) => {
+    if (!bookingId) return;
     try {
       await updateScanStatus({ bookingId, scanned: nextState });
       if (nextState) {
@@ -257,10 +265,36 @@ export default function BookingConfirmationPage({
         setQrError(null);
         await requestTokens(true);
       }
-    } catch (error: any) {
-      alert(error.message || "Failed to update ticket status");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to update ticket status";
+      alert(message);
     }
   };
+
+  if (missingBookingId) {
+    return (
+      <MainLayout>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+            ❌
+          </div>
+          <h3 className="mt-6 text-2xl font-semibold">Booking ID Missing</h3>
+          <p className="mt-3 text-sm text-red-100/80">
+            Please use a valid booking link to view details.
+          </p>
+          <Link
+            href="/my-bookings"
+            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/50"
+          >
+            View My Bookings
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

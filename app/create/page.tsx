@@ -7,7 +7,19 @@ import MainLayout from "../components/MainLayout";
 
 export default function CreateEventPage() {
   const currentUser = useQuery(api.users.current);
-  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+  const isAdmin = !!currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+
+  if (currentUser === undefined) {
+    return (
+      <MainLayout>
+        <div className="animate-pulse space-y-4">
+          <div className="h-12 bg-slate-800 rounded w-1/4"></div>
+          <div className="h-32 bg-slate-800 rounded"></div>
+          <div className="h-32 bg-slate-800 rounded"></div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

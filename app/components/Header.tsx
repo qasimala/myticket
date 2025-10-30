@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import AuthDialog from "./AuthDialog";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -75,6 +76,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 />
               </div>
             </div>
+
+            <ThemeToggle />
 
             {currentUser && (
               <Link

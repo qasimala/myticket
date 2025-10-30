@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -8,17 +8,20 @@ import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
-export default function PaymentPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const bookingId = id as Id<"bookings">;
-  const booking = useQuery(api.bookings.getBooking, { bookingId });
-  const initializePayment = useAction(api.payments.initializePayment);
+export default function PaymentPage() {
+  const params = useParams<{ id: string }>();
+  const idParam = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+
   const router = useRouter();
+
+  const bookingId = idParam ? (idParam as Id<"bookings">) : null;
+  const booking = useQuery(
+    api.bookings.getBooking,
+    bookingId ? { bookingId } : "skip"
+  );
+  const initializePayment = useAction(api.payments.initializePayment);
   
   const [paymentData, setPaymentData] = useState<{
     checkoutId: string;
@@ -32,6 +35,8 @@ export default function PaymentPage({
     return `$${(priceInCents / 100).toFixed(2)}`;
   };
 
+  const missingBookingId = !bookingId;
+
   // Initialize payment on mount
   useEffect(() => {
     if (booking && booking.paymentStatus === "pending" && !paymentData && !isInitializing) {
@@ -40,6 +45,10 @@ export default function PaymentPage({
   }, [booking, paymentData, isInitializing]);
 
   const initPayment = async () => {
+    if (!bookingId) {
+      setError("Missing booking reference. Please use a valid payment link.");
+      return;
+    }
     setIsInitializing(true);
     setError("");
     
@@ -60,8 +69,10 @@ export default function PaymentPage({
         checkoutId: result.checkoutId,
         widgetUrl: result.widgetUrl,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to initialize payment");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to initialize payment";
+      setError(message);
     } finally {
       setIsInitializing(false);
     }
@@ -90,7 +101,7 @@ export default function PaymentPage({
             </div>
             <h3 className="mt-6 text-2xl font-semibold">Booking Not Found</h3>
             <p className="mt-3 text-sm text-red-100/80">
-              The booking you're trying to pay for doesn't exist
+              The booking you&apos;re trying to pay for doesn&apos;t exist
             </p>
             <Link
               href="/"
@@ -121,6 +132,30 @@ export default function PaymentPage({
               className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
             >
               View Booking
+            </Link>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (missingBookingId) {
+    return (
+      <MainLayout>
+        <div className="mx-auto w-full">
+          <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+              ❌
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold">Payment Link Invalid</h3>
+            <p className="mt-3 text-sm text-red-100/80">
+              Please return to your bookings to resume checkout.
+            </p>
+            <Link
+              href="/my-bookings"
+              className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/50"
+            >
+              View My Bookings
             </Link>
           </div>
         </div>

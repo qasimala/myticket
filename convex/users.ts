@@ -59,6 +59,32 @@ export const current = query({
   },
 });
 
+// Query to list all users (admin or superadmin only)
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ["admin", "superadmin"]);
+
+    const profiles = await ctx.db.query("userProfiles").collect();
+
+    const enriched = await Promise.all(
+      profiles.map(async (profile) => {
+        const authUser = await ctx.db.get(profile.userId);
+        return {
+          _id: profile._id,
+          userId: profile.userId,
+          name: profile.name ?? null,
+          role: profile.role,
+          createdAt: profile.createdAt,
+          email: authUser?.email ?? null,
+        };
+      })
+    );
+
+    return enriched;
+  },
+});
+
 // Mutation to update user role (superadmin only)
 export const updateRole = mutation({
   args: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -26,10 +26,12 @@ export default function BookingConfirmationPage({
   const updateScanStatus = useMutation(api.bookings.setScannedStatus);
   const generateQrToken = useAction(api.bookings.generateQrToken);
 
+  const [qrQueue, setQrQueue] = useState<QrData[]>([]);
   const [qrData, setQrData] = useState<QrData | null>(null);
+  const [lastQrValue, setLastQrValue] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const [tokenRefreshKey, setTokenRefreshKey] = useState(0);
+  const fetchingRef = useRef(false);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -56,65 +58,69 @@ export default function BookingConfirmationPage({
     });
   };
 
+  const requestTokens = useCallback(
+    async (force = false) => {
+      if (fetchingRef.current) return;
+      if (booking === undefined || !booking) return;
+      if (booking.scanned && !force) return;
+
+      fetchingRef.current = true;
+      try {
+        const result = await generateQrToken({ bookingId });
+        const nowTime = Date.now();
+        const tokens = Array.isArray(result.tokens)
+          ? result.tokens
+              .map((token) => ({
+                value: token.qrValue,
+                expiresAt: token.expiresAt,
+                windowMs: result.windowMs,
+              }))
+              .filter((token) => token.expiresAt > nowTime)
+          : [];
+
+        if (tokens.length > 0) {
+          setQrQueue((prev) => {
+            const filteredPrev = prev.filter(
+              (token) => token.expiresAt > nowTime
+            );
+            const combined = [...filteredPrev];
+
+            for (const token of tokens) {
+              if (!combined.some((existing) => existing.value === token.value)) {
+                combined.push(token);
+              }
+            }
+
+            combined.sort((a, b) => a.expiresAt - b.expiresAt);
+            return combined.slice(0, 3);
+          });
+          setNow(Date.now());
+        }
+
+        setQrError(null);
+      } catch (error: any) {
+        setQrError(error.message || "Failed to refresh QR code");
+      } finally {
+        fetchingRef.current = false;
+      }
+    },
+    [booking, bookingId, generateQrToken]
+  );
+
   useEffect(() => {
     if (booking === undefined) {
       return;
     }
 
-    if (!booking) {
-      setQrData(null);
+    setQrQueue([]);
+    setQrData(null);
+
+    if (booking && !booking.scanned) {
+      requestTokens();
+    } else {
       setQrError(null);
-      return;
     }
-
-    if (booking.scanned) {
-      setQrData(null);
-      setQrError(null);
-      return;
-    }
-
-    let cancelled = false;
-    let refreshTimer: ReturnType<typeof setInterval> | null = null;
-
-    const fetchToken = async () => {
-      try {
-        const result = await generateQrToken({ bookingId });
-        if (cancelled) return;
-        setQrData({
-          value: result.qrValue,
-          expiresAt: result.expiresAt,
-          windowMs: result.windowMs,
-        });
-        setQrError(null);
-        setNow(Date.now());
-
-        if (refreshTimer) {
-          clearInterval(refreshTimer);
-        }
-
-        const refreshDelay = Math.max(2000, result.windowMs - 2000);
-        refreshTimer = setInterval(() => {
-          fetchToken();
-        }, refreshDelay);
-      } catch (error: any) {
-        if (cancelled) return;
-        setQrError(error.message || "Failed to refresh QR code");
-        if (refreshTimer) {
-          clearInterval(refreshTimer);
-          refreshTimer = null;
-        }
-      }
-    };
-
-    fetchToken();
-
-    return () => {
-      cancelled = true;
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-      }
-    };
-  }, [booking, bookingId, generateQrToken, tokenRefreshKey]);
+  }, [booking, requestTokens]);
 
   useEffect(() => {
     if (!qrData || booking?.scanned) {
@@ -127,6 +133,50 @@ export default function BookingConfirmationPage({
 
     return () => clearInterval(interval);
   }, [qrData, booking?.scanned]);
+
+  useEffect(() => {
+    if (!qrQueue.length) {
+      if (qrData !== null) {
+        setQrData(null);
+      }
+      return;
+    }
+
+    const nowTime = now;
+    const validQueue = qrQueue.filter((token) => token.expiresAt > nowTime);
+    if (validQueue.length !== qrQueue.length) {
+      setQrQueue(validQueue);
+      return;
+    }
+
+    const activeToken = validQueue[0];
+    if (!activeToken) {
+      if (qrData !== null) {
+        setQrData(null);
+      }
+      return;
+    }
+
+    if (!qrData || qrData.value !== activeToken.value) {
+      setQrData(activeToken);
+    }
+  }, [qrQueue, now, qrData]);
+
+  useEffect(() => {
+    if (booking === undefined || !booking || booking.scanned) {
+      return;
+    }
+
+    if (qrError) {
+      return;
+    }
+
+    if (fetchingRef.current) return;
+
+    if (qrQueue.length <= 1) {
+      requestTokens();
+    }
+  }, [booking, qrQueue, qrError, requestTokens]);
 
   if (booking === undefined) {
     return (
@@ -177,7 +227,7 @@ export default function BookingConfirmationPage({
     : null;
 
   const refreshSeconds =
-    qrData && !isScanned ? Math.round(qrData.windowMs / 1000) : null;
+    qrData && !isScanned ? qrData.windowMs / 1000 : null;
   const remainingSeconds =
     qrData && !isScanned
       ? Math.max(0, (qrData.expiresAt - now) / 1000)
@@ -205,9 +255,10 @@ export default function BookingConfirmationPage({
       await updateScanStatus({ bookingId, scanned: nextState });
       if (nextState) {
         setQrData(null);
+        setQrQueue([]);
       } else {
         setQrError(null);
-        setTokenRefreshKey((key) => key + 1);
+        await requestTokens(true);
       }
     } catch (error: any) {
       alert(error.message || "Failed to update ticket status");
@@ -254,7 +305,7 @@ export default function BookingConfirmationPage({
                       {qrError}
                     </p>
                     <button
-                      onClick={() => setTokenRefreshKey((key) => key + 1)}
+                      onClick={() => requestTokens()}
                       className="mt-4 inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
                     >
                       Try Again

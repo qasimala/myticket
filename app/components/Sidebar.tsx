@@ -54,6 +54,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       description: "Manage users",
       requireAdmin: true,
     },
+    {
+      name: "Ticket Scanner",
+      path: "/admin/scan",
+      icon: "🔍",
+      description: "Validate QR tickets",
+      requireAdmin: true,
+    },
   ];
 
   const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");

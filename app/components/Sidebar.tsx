@@ -1,18 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
+  ChevronDown,
   Crown,
+  LogOut,
   PlusSquare,
   QrCode,
+  Search,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
+import AuthDialog from "./AuthDialog";
+import ThemeToggle from "./ThemeToggle";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -78,10 +86,16 @@ const adminItems: NavItem[] = [
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const currentUser = useQuery(api.users.current);
+  const cartCount = useQuery(api.cart.getCartCount);
+  const { signOut } = useAuthActions();
+
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const isActive = (path: string) => pathname === path;
   const isAdmin =
-    currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   const renderLink = (item: NavItem, index: number) => {
     if (item.requireAdmin && !isAdmin) return null;
@@ -162,6 +176,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
           </div>
 
+          {/* Search Bar */}
+          <div className="border-b border-white/10 px-4 py-4">
+            <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-[0_18px_45px_rgba(15,23,42,0.35)]">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                strokeWidth={1.6}
+              />
+              <input
+                type="search"
+                placeholder="Search headliners, venues..."
+                className="w-full bg-transparent py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
           <nav className="flex-1 overflow-y-auto px-4 py-6">
             <div className="space-y-2">
               <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400/80">
@@ -186,25 +215,92 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
           </nav>
 
-          {currentUser && (
-            <div className="border-t border-white/10 px-4 py-5">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl animate-fade-up animation-delay-2">
-                <div className="flex items-center gap-3">
+          {/* Actions Section */}
+          <div className="border-t border-white/10 px-4 py-4 space-y-3">
+            {/* Cart Link */}
+            {currentUser && (
+              <Link
+                href="/cart"
+                onClick={onClose}
+                className="relative flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/10"
+              >
+                <ShoppingBag className="h-4 w-4" strokeWidth={1.7} />
+                <span className="flex-1">Cart</span>
+                {cartCount && cartCount > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#483d8b] to-[#6a5acd] text-[11px] font-bold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)]">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* User Section */}
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu((prev) => !prev)}
+                  className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition hover:border-white/20 hover:bg-white/10"
+                >
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white">
                     {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 text-left">
                     <p className="truncate text-sm font-semibold text-white">
                       {currentUser.name || "User"}
                     </p>
-                    <p className="text-xs text-slate-300/80">{currentUser.role}</p>
+                    <p className="text-xs text-slate-300/80">
+                      {currentUser.role}
+                    </p>
                   </div>
-                </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-slate-400 transition ${showUserMenu ? "rotate-180" : ""}`}
+                    strokeWidth={1.8}
+                  />
+                </button>
+
+                {showUserMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowUserMenu(false)}
+                    />
+                    <div className="absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-xl border border-white/10 bg-slate-900/90 p-3 shadow-[0_18px_45px_rgba(15,23,42,0.45)] backdrop-blur-xl space-y-2">
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-60" />
+                      <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-2">
+                        <span className="text-sm font-semibold text-slate-300">
+                          Theme
+                        </span>
+                        <ThemeToggle />
+                      </div>
+                      <button
+                        onClick={() => {
+                          signOut();
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-white/10"
+                      >
+                        <LogOut className="h-4 w-4" strokeWidth={1.8} />
+                        Sign out
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            ) : (
+              <button
+                onClick={() => setShowAuthDialog(true)}
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+              >
+                Sign in
+              </button>
+            )}
+          </div>
         </div>
       </aside>
+
+      {showAuthDialog && (
+        <AuthDialog onClose={() => setShowAuthDialog(false)} />
+      )}
     </>
   );
 }

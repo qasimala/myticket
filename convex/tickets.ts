@@ -2,6 +2,14 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 
+// Query to get all tickets
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("tickets").collect();
+  },
+});
+
 // Query to get all tickets for an event
 export const listByEvent = query({
   args: { eventId: v.id("events") },
@@ -39,7 +47,11 @@ export const create = mutation({
     if (!event) throw new Error("Event not found");
 
     // Check permissions: must be creator or admin
-    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    if (
+      event.createdBy !== user._id &&
+      user.role !== "admin" &&
+      user.role !== "superadmin"
+    ) {
       throw new Error("You don't have permission to add tickets to this event");
     }
 
@@ -64,7 +76,13 @@ export const update = mutation({
     description: v.optional(v.string()),
     price: v.optional(v.number()),
     quantity: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("available"), v.literal("sold_out"), v.literal("hidden"))),
+    status: v.optional(
+      v.union(
+        v.literal("available"),
+        v.literal("sold_out"),
+        v.literal("hidden")
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -77,7 +95,11 @@ export const update = mutation({
     if (!event) throw new Error("Event not found");
 
     // Check permissions: must be creator or admin
-    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    if (
+      event.createdBy !== user._id &&
+      user.role !== "admin" &&
+      user.role !== "superadmin"
+    ) {
       throw new Error("You don't have permission to update this ticket");
     }
 
@@ -100,7 +122,11 @@ export const remove = mutation({
     if (!event) throw new Error("Event not found");
 
     // Check permissions: must be creator or admin
-    if (event.createdBy !== user._id && user.role !== "admin" && user.role !== "superadmin") {
+    if (
+      event.createdBy !== user._id &&
+      user.role !== "admin" &&
+      user.role !== "superadmin"
+    ) {
       throw new Error("You don't have permission to delete this ticket");
     }
 
@@ -114,21 +140,20 @@ export const sell = mutation({
   handler: async (ctx, args) => {
     const ticket = await ctx.db.get(args.id);
     if (!ticket) throw new Error("Ticket not found");
-    
+
     const newSold = ticket.sold + args.quantity;
-    
+
     if (newSold > ticket.quantity) {
       throw new Error("Not enough tickets available");
     }
-    
+
     const updates: any = { sold: newSold };
-    
+
     // Auto-update status if sold out
     if (newSold >= ticket.quantity) {
       updates.status = "sold_out";
     }
-    
+
     await ctx.db.patch(args.id, updates);
   },
 });
-

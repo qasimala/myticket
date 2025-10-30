@@ -8,8 +8,11 @@ import {
   CalendarX2,
   Clock3,
   Crown,
-  Sparkles,
-  Users,
+  Filter,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import EventCard from "./EventCard";
@@ -34,6 +37,11 @@ export default function EventList() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [timeframe, setTimeframe] = useState<Timeframe>("upcoming");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const allowedView: ViewMode = isAdmin ? viewMode : "all";
   const viewOptions: ViewMode[] = isAdmin ? ["all", "mine"] : ["all"];
@@ -41,17 +49,83 @@ export default function EventList() {
   const sourceEvents = allowedView === "mine" ? myEvents : allEvents;
   const eventsLoading = sourceEvents === undefined;
 
+  // Get all tickets to calculate price ranges
+  const allTickets = useQuery(api.tickets.list);
+
+  // Get unique cities and price ranges
+  const { cities, priceRange } = useMemo(() => {
+    const raw = Array.isArray(allEvents) ? allEvents : [];
+    const citySet = new Set<string>();
+    const prices: number[] = [];
+
+    raw.forEach((event) => {
+      if (event.city) citySet.add(event.city);
+    });
+
+    const ticketsList = Array.isArray(allTickets) ? allTickets : [];
+    ticketsList.forEach((ticket) => {
+      if (ticket.price && ticket.status === "available") {
+        prices.push(ticket.price);
+      }
+    });
+
+    return {
+      cities: Array.from(citySet).sort(),
+      priceRange: {
+        min: prices.length > 0 ? Math.min(...prices) : 0,
+        max: prices.length > 0 ? Math.max(...prices) : 0,
+      },
+    };
+  }, [allEvents, allTickets]);
+
   const { events, upcomingCount, premiumHosts } = useMemo(() => {
     const now = Date.now();
     const raw = Array.isArray(sourceEvents) ? sourceEvents : [];
 
-    const filtered = raw.filter((event) => {
+    // First filter by timeframe
+    let filtered = raw.filter((event) => {
       const eventTime = new Date(event.date).getTime();
       if (Number.isNaN(eventTime)) return timeframe !== "upcoming";
       if (timeframe === "upcoming") return eventTime >= now;
       if (timeframe === "past") return eventTime < now;
       return true;
     });
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((event) => {
+        return (
+          event.name.toLowerCase().includes(query) ||
+          event.description.toLowerCase().includes(query) ||
+          event.location.toLowerCase().includes(query) ||
+          event.city.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // Filter by city
+    if (selectedCity) {
+      filtered = filtered.filter((event) => event.city === selectedCity);
+    }
+
+    // Filter by price range (need to check tickets)
+    if (minPrice !== null || maxPrice !== null) {
+      const ticketsList = Array.isArray(allTickets) ? allTickets : [];
+      filtered = filtered.filter((event) => {
+        const eventTickets = ticketsList.filter(
+          (t) => t.eventId === event._id && t.status === "available"
+        );
+        if (eventTickets.length === 0) return false;
+
+        const minTicketPrice = Math.min(...eventTickets.map((t) => t.price));
+        const maxTicketPrice = Math.max(...eventTickets.map((t) => t.price));
+
+        if (minPrice !== null && maxTicketPrice < minPrice) return false;
+        if (maxPrice !== null && minTicketPrice > maxPrice) return false;
+        return true;
+      });
+    }
 
     filtered.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -73,22 +147,16 @@ export default function EventList() {
       upcomingCount: upcomingTotal,
       premiumHosts: hostSet.size,
     };
-  }, [allEvents, sourceEvents, timeframe]);
-
-  const heroMetrics = [
-    {
-      label: "Headline Moments",
-      value: upcomingCount,
-      accent: "upcoming",
-      icon: CalendarDays,
-    },
-    {
-      label: "Premium Hosts",
-      value: premiumHosts,
-      accent: "trusted curators",
-      icon: Users,
-    },
-  ];
+  }, [
+    allEvents,
+    sourceEvents,
+    timeframe,
+    searchQuery,
+    selectedCity,
+    minPrice,
+    maxPrice,
+    allTickets,
+  ]);
 
   const timeframeInfo: Record<Timeframe, { title: string; subtitle: string }> =
     {
@@ -106,105 +174,217 @@ export default function EventList() {
       },
     };
 
+  const hasActiveFilters =
+    searchQuery.trim() !== "" ||
+    selectedCity !== "" ||
+    minPrice !== null ||
+    maxPrice !== null;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCity("");
+    setMinPrice(null);
+    setMaxPrice(null);
+  };
+
+  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(0)}`;
+
   const EmptyIcon = timeframe === "past" ? Clock3 : CalendarX2;
 
   return (
     <div className="space-y-12">
-      <section className="relative overflow-hidden rounded-[2.75rem] border border-white/10 bg-white/[0.05] px-6 py-12 shadow-[0_40px_120px_rgba(15,23,42,0.55)] backdrop-blur-2xl sm:px-10 lg:px-12 animate-fade-up">
+      {/* Search and Filter Section */}
+      <section className="relative overflow-hidden rounded-[2.75rem] border border-white/10 bg-white/[0.05] px-6 py-8 shadow-[0_40px_120px_rgba(15,23,42,0.55)] backdrop-blur-2xl sm:px-10 lg:px-12 animate-fade-up">
         <div className="absolute -right-40 -top-48 h-[28rem] w-[28rem] rounded-full bg-gradient-to-br from-indigo-500/40 via-purple-500/35 to-cyan-400/25 blur-3xl" />
         <div className="absolute -bottom-52 -left-24 h-[30rem] w-[30rem] rounded-full bg-gradient-to-br from-cyan-400/20 via-teal-400/25 to-transparent blur-[200px]" />
         <div className="absolute inset-0 rounded-[2.75rem] border border-white/5 opacity-40" />
 
-        <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-6 lg:max-w-xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.5em] text-slate-200/90">
-              <Sparkles
-                className="h-3.5 w-3.5 text-indigo-200"
-                strokeWidth={1.8}
+        <div className="relative space-y-6">
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                strokeWidth={1.6}
               />
-              Premium Access
-            </span>
-            <div className="space-y-4">
-              <h1 className="text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
-                Craft experiences that feel extraordinary
-              </h1>
-              <p className="max-w-xl text-sm text-slate-200/80 sm:text-base">
-                Browse curated events or elevate the vibe with your own. Every
-                experience is designed to impress VIP guests and discerning
-                audiences.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {heroMetrics.map((metric, index) => {
-                const Icon = metric.icon;
-                return (
-                  <div
-                    key={metric.label}
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 animate-fade-up"
-                    style={{ animationDelay: `${0.1 * index}s` }}
-                  >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                      <Icon
-                        className="h-5 w-5 text-indigo-200"
-                        strokeWidth={1.7}
-                      />
-                    </span>
-                    <div>
-                      <p className="text-lg font-semibold text-white">
-                        {metric.value}
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.35em] text-slate-300/80">
-                        {metric.label}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search events, venues, hosts, or locations..."
+                className="w-full bg-transparent py-4 pl-12 pr-4 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-slate-200"
+                >
+                  <X className="h-4 w-4" strokeWidth={1.8} />
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="relative w-full max-w-sm rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 text-slate-100 shadow-[0_30px_80px_rgba(15,23,42,0.55)] backdrop-blur-xl">
-            <div className="absolute inset-0 rounded-[2rem] border border-white/10 opacity-60" />
-            <div className="pointer-events-none absolute inset-x-5 top-5 h-10 rounded-full bg-gradient-to-r from-indigo-400/25 via-transparent to-purple-400/25 blur-2xl" />
-            <div className="relative">
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.45em] text-slate-300/80">
-                <span>View</span>
-                <span>Mode</span>
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filter Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+                showFilters || hasActiveFilters
+                  ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-200"
+                  : "border-white/10 bg-white/5 text-slate-200 hover:border-white/20 hover:bg-white/10"
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" strokeWidth={1.8} />
+              Filters
+              {hasActiveFilters && (
+                <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">
+                  {
+                    [searchQuery, selectedCity, minPrice, maxPrice].filter(
+                      Boolean
+                    ).length
+                  }
+                </span>
+              )}
+            </button>
+
+            {/* Quick Filters - City */}
+            {cities.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="appearance-none rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pl-10 pr-8 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">All Cities</option>
+                  {cities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+                <MapPin
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  strokeWidth={1.8}
+                />
               </div>
-              <div className="mt-4 flex gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
+            )}
+
+            {/* Timeframe Filters */}
+            <div className="flex gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
+              {(Object.keys(timeframeLabels) as Timeframe[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setTimeframe(option)}
+                  className={`rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition ${
+                    timeframe === option
+                      ? "bg-white/15 text-white shadow-inner shadow-slate-900/20"
+                      : "text-slate-300/80 hover:bg-white/10"
+                  }`}
+                >
+                  {timeframeLabels[option]}
+                </button>
+              ))}
+            </div>
+
+            {/* View Mode (Admin only) */}
+            {isAdmin && (
+              <div className="flex gap-2 rounded-xl border border-white/10 bg-white/5 p-1">
                 {viewOptions.map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setViewMode(mode)}
-                    className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                       allowedView === mode
                         ? "bg-gradient-to-r from-[#483d8b]/90 to-[#6a5acd]/90 text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)]"
-                        : "text-slate-200 hover:bg-white/10"
+                        : "text-slate-300/80 hover:bg-white/10"
                     }`}
                   >
-                    {mode === "all" ? "All Experiences" : "Hosted by Me"}
+                    {mode === "all" ? "All" : "Mine"}
                   </button>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-slate-300/70">
-                {isAdmin
-                  ? "Host view gives you full control over premium experiences you curate."
-                  : "Create an event to join our network of premium hosts."}
-              </p>
-              <div className="mt-6">
-                <Link
-                  href={isAdmin ? "/create" : "/"}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
-                >
-                  <Crown className="h-4 w-4" strokeWidth={1.8} />
-                  {isAdmin
-                    ? "Plan a Signature Event"
-                    : "Explore Premium Highlights"}
-                </Link>
-              </div>
-            </div>
+            )}
+
+            {/* Clear Filters */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="ml-auto flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+              >
+                <X className="h-4 w-4" strokeWidth={1.8} />
+                Clear
+              </button>
+            )}
           </div>
+
+          {/* Expanded Filters Panel */}
+          {showFilters && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-6 space-y-4 animate-fade-up">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="h-4 w-4 text-slate-400" strokeWidth={1.8} />
+                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+                  Price Range
+                </h3>
+              </div>
+
+              {priceRange.max > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                      Min Price
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={priceRange.max}
+                        value={minPrice ?? ""}
+                        onChange={(e) =>
+                          setMinPrice(
+                            e.target.value
+                              ? parseInt(e.target.value) * 100
+                              : null
+                          )
+                        }
+                        placeholder={formatPrice(priceRange.min)}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-8 pr-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                      Max Price
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min={minPrice ?? 0}
+                        max={priceRange.max}
+                        value={maxPrice ? maxPrice / 100 : ""}
+                        onChange={(e) =>
+                          setMaxPrice(
+                            e.target.value
+                              ? parseInt(e.target.value) * 100
+                              : null
+                          )
+                        }
+                        placeholder={formatPrice(priceRange.max)}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-8 pr-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

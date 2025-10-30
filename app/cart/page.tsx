@@ -1,10 +1,20 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import MainLayout from "../components/MainLayout";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  CalendarDays,
+  LockKeyhole,
+  MapPin,
+  Minus,
+  Plus,
+  ShoppingCart,
+  TicketIcon,
+  Trash2,
+} from "lucide-react";
 
 export default function CartPage() {
   const currentUser = useQuery(api.users.current);
@@ -19,26 +29,41 @@ export default function CartPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
+      weekday: "long",
+      month: "long",
       day: "numeric",
       year: "numeric",
     });
   };
 
+  if (currentUser === undefined) {
+    return (
+      <MainLayout>
+        <div className="space-y-5">
+          <div className="h-8 w-60 animate-pulse rounded-full bg-white/10" />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
+              <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
+            </div>
+            <div className="h-64 animate-pulse rounded-2xl bg-white/5" />
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   if (!currentUser) {
     return (
       <MainLayout>
-        <div className="p-6 lg:p-8">
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">🔒</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Sign In Required
-            </h3>
-            <p className="text-gray-600">
-              Please sign in to view your cart
-            </p>
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-200">
+            <LockKeyhole className="h-8 w-8" />
           </div>
+          <h3 className="text-2xl font-semibold">Sign In Required</h3>
+          <p className="mt-3 text-sm text-red-100/80">
+            Please sign in to manage your cart and continue to checkout.
+          </p>
         </div>
       </MainLayout>
     );
@@ -47,11 +72,14 @@ export default function CartPage() {
   if (cart === undefined) {
     return (
       <MainLayout>
-        <div className="p-6 lg:p-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+        <div className="space-y-5">
+          <div className="h-8 w-56 animate-pulse rounded-full bg-white/10" />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
+              <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
+            </div>
+            <div className="h-64 animate-pulse rounded-2xl bg-white/5" />
           </div>
         </div>
       </MainLayout>
@@ -65,172 +93,208 @@ export default function CartPage() {
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const CartHeader = () => (
+    <div className="flex flex-col gap-2">
+      <h1 className="text-3xl font-bold text-slate-50">Shopping Cart</h1>
+      <p className="text-slate-400">
+        {totalItems} {totalItems === 1 ? "ticket reserved" : "tickets reserved"} ·{" "}
+        <span className="text-indigo-300">{formatPrice(totalPrice)}</span>
+      </p>
+    </div>
+  );
+
+  if (cart.length === 0) {
+    return (
+      <MainLayout>
+        <CartHeader />
+        <div className="mt-8 rounded-3xl border border-white/10 bg-slate-900/80 px-12 py-16 text-center shadow-lg">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-indigo-300">
+            <ShoppingCart className="h-8 w-8" />
+          </div>
+          <h3 className="text-2xl font-semibold text-slate-50">
+            Your cart is empty
+          </h3>
+          <p className="mt-3 text-sm text-slate-400">
+            Discover upcoming events and add tickets to build your experience.
+          </p>
+          <Link
+            href="/"
+            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
+          >
+            Browse Events
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      <div className="p-6 lg:p-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
-          <p className="text-gray-600 mt-1">
-            {totalItems} {totalItems === 1 ? "item" : "items"} in your cart
-          </p>
-        </div>
+      <div className="space-y-8">
+        <CartHeader />
 
-        {cart.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">🛒</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Your cart is empty
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Browse events and add tickets to get started
-            </p>
-            <Link
-              href="/"
-              className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
-            >
-              Browse Events
-            </Link>
-          </div>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              {cart.map((item) => (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            {cart.map((item) => {
+              const maxAvailable = item.ticket.quantity - item.ticket.sold;
+              const canIncrease = item.quantity < maxAvailable;
+
+              return (
                 <div
                   key={item._id}
-                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-lg transition hover:border-white/20 hover:shadow-xl"
                 >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        {/* Event Info */}
-                        <div className="mb-3">
-                          <Link
-                            href={`/events/${item.event._id}`}
-                            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-                          >
-                            {item.event.name}
-                          </Link>
-                          <div className="text-xs text-gray-500 mt-1">
-                            📅 {formatDate(item.event.date)} • 📍{" "}
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <Link
+                          href={`/events/${item.event._id}`}
+                          className="text-sm font-semibold text-indigo-300 hover:text-indigo-200"
+                        >
+                          {item.event.name}
+                        </Link>
+
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            {formatDate(item.event.date)}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            <MapPin className="h-3.5 w-3.5" />
                             {item.event.city}, {item.event.country}
-                          </div>
-                        </div>
-
-                        {/* Ticket Info */}
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">
-                          {item.ticket.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                          {item.ticket.description}
-                        </p>
-
-                        {/* Quantity Selector */}
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                if (item.quantity > 1) {
-                                  updateCartItem({
-                                    cartItemId: item._id,
-                                    quantity: item.quantity - 1,
-                                  });
-                                }
-                              }}
-                              disabled={item.quantity <= 1}
-                              className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              −
-                            </button>
-                            <span className="w-12 text-center font-semibold">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => {
-                                const maxAvailable =
-                                  item.ticket.quantity - item.ticket.sold;
-                                if (item.quantity < maxAvailable) {
-                                  updateCartItem({
-                                    cartItemId: item._id,
-                                    quantity: item.quantity + 1,
-                                  });
-                                }
-                              }}
-                              disabled={
-                                item.quantity >=
-                                item.ticket.quantity - item.ticket.sold
-                              }
-                              className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              +
-                            </button>
-                          </div>
-
-                          <button
-                            onClick={() =>
-                              removeFromCart({ cartItemId: item._id })
-                            }
-                            className="text-sm text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Remove
-                          </button>
+                          </span>
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">
-                          {formatPrice(item.ticket.price * item.quantity)}
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-100">
+                          <TicketIcon className="h-4 w-4 text-indigo-300" />
+                          <h3 className="text-lg font-semibold">
+                            {item.ticket.name}
+                          </h3>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {formatPrice(item.ticket.price)} each
+                        {item.ticket.description && (
+                          <p className="mt-2 text-sm text-slate-400">
+                            {item.ticket.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="inline-flex items-center rounded-xl border border-white/10 bg-white/5">
+                          <button
+                            onClick={() => {
+                              if (item.quantity > 1) {
+                                updateCartItem({
+                                  cartItemId: item._id,
+                                  quantity: item.quantity - 1,
+                                });
+                              }
+                            }}
+                            disabled={item.quantity <= 1}
+                            className="flex h-10 w-10 items-center justify-center border-r border-white/10 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:text-slate-500"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-12 text-center text-sm font-semibold text-slate-100">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (canIncrease) {
+                                updateCartItem({
+                                  cartItemId: item._id,
+                                  quantity: item.quantity + 1,
+                                });
+                              }
+                            }}
+                            disabled={!canIncrease}
+                            className="flex h-10 w-10 items-center justify-center border-l border-white/10 text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:text-slate-500"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
                         </div>
+
+                        <button
+                          onClick={() => removeFromCart({ cartItemId: item._id })}
+                          className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove
+                        </button>
+
+                        {!canIncrease && (
+                          <span className="text-xs text-yellow-200">
+                            Maximum available tickets reached
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="min-w-[180px] rounded-2xl border border-white/10 bg-white/5 p-4 text-right">
+                      <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                        Total
+                      </div>
+                      <div className="mt-2 text-2xl font-bold text-white">
+                        {formatPrice(item.ticket.price * item.quantity)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        {formatPrice(item.ticket.price)} each
                       </div>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-lg">
+                <h2 className="text-xl font-semibold text-slate-50">
                   Order Summary
                 </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  All taxes included. You will confirm details at checkout.
+                </p>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-gray-600">
+                <div className="mt-6 space-y-3 text-sm text-slate-300">
+                  <div className="flex items-center justify-between">
                     <span>Subtotal ({totalItems} items)</span>
                     <span>{formatPrice(totalPrice)}</span>
                   </div>
-                  <div className="border-t border-gray-200 pt-3">
-                    <div className="flex justify-between text-lg font-bold text-gray-900">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Service & platform fees</span>
+                    <span>Calculated at checkout</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-3 text-base font-semibold text-slate-100">
+                    <div className="flex items-center justify-between">
                       <span>Total</span>
-                      <span>{formatPrice(totalPrice)}</span>
+                      <span className="text-indigo-300">
+                        {formatPrice(totalPrice)}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => router.push("/checkout")}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-lg shadow-lg"
+                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
                 >
                   Proceed to Checkout
                 </button>
 
                 <Link
                   href="/"
-                  className="block text-center mt-4 text-indigo-600 hover:text-indigo-700 font-medium"
+                  className="mt-3 block text-center text-sm font-semibold text-indigo-300 hover:text-indigo-200"
                 >
-                  Continue Shopping
+                  Continue browsing events
                 </Link>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </MainLayout>
   );
 }
-

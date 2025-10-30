@@ -135,7 +135,7 @@ export default function EventCard({ event, isAdmin = false }: EventCardProps) {
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/5">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400"
+                  className="h-full rounded-full bg-gradient-to-r from-[#483d8b] to-[#6a5acd]"
                   style={{ width: `${occupancy}%` }}
                 />
               </div>
@@ -154,7 +154,7 @@ export default function EventCard({ event, isAdmin = false }: EventCardProps) {
               <>
                 <button
                   onClick={() => setShowTickets((prev) => !prev)}
-                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500/80 to-sky-400/80 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/40"
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#483d8b]/85 to-[#6a5acd]/85 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.32)]"
                 >
                   {showTickets ? "Hide Ticketing" : "Ticketing Suite"}
                 </button>
@@ -201,3 +201,4 @@ export default function EventCard({ event, isAdmin = false }: EventCardProps) {
     </div>
   );
 }
+

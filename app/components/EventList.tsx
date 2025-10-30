@@ -112,7 +112,7 @@ export default function EventList() {
                   onClick={() => setViewMode(mode)}
                   className={`flex-1 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                     allowedView === mode
-                      ? "bg-gradient-to-r from-indigo-500/80 to-purple-500/80 text-white shadow-lg shadow-indigo-500/30"
+                      ? "bg-gradient-to-r from-[#483d8b]/85 to-[#6a5acd]/85 text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)]"
                       : "text-slate-200 hover:bg-white/10"
                   }`}
                 >
@@ -132,7 +132,7 @@ export default function EventList() {
             <div className="mt-6">
               <Link
                 href={isAdmin ? "/create" : "/"}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/50"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
               >
                 {isAdmin ? "Plan a Signature Event" : "Explore Premium Highlights"}
               </Link>
@@ -207,3 +207,4 @@ export default function EventList() {
     </div>
   );
 }
+

@@ -87,7 +87,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <span className="mr-2 text-base">🛍️</span>
                 <span className="hidden sm:inline">Cart</span>
                 {cartCount && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 text-[11px] font-bold text-white shadow-lg shadow-indigo-500/30">
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#483d8b] to-[#6a5acd] text-[11px] font-bold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)]">
                     {cartCount}
                   </span>
                 )}
@@ -97,7 +97,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {isAdmin && (
               <Link
                 href="/create"
-                className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_18px_45px_rgba(99,102,241,0.35)] transition hover:shadow-[0_22px_65px_rgba(99,102,241,0.45)] sm:flex"
+                className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_65px_rgba(72,61,139,0.36)] sm:flex"
               >
                 Launch Event
               </Link>
@@ -180,3 +180,4 @@ export default function Header({ onMenuClick }: HeaderProps) {
     </>
   );
 }
+

@@ -132,7 +132,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <div className="relative flex h-11 w-11 items-center justify-center">
                 <span className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 opacity-80 blur-md transition group-hover:opacity-100" />
-                <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/80 text-lg font-semibold text-white shadow-lg shadow-indigo-500/40">
+                <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/80 text-lg font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.26)]">
                   MT
                 </span>
               </div>

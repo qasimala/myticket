@@ -19,20 +19,18 @@ RUN \
 # 2. Rebuild the source code only when needed
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG CONVEX_DEPLOYMENT
+# Build-time environment variables (passed from Easypanel)
+# Easypanel should automatically pass environment variables as build arguments
 ARG NEXT_PUBLIC_CONVEX_URL
 ARG QR_SECRET
-ARG CONVEX_ACCESS_TOKEN
-ENV CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 ENV QR_SECRET=${QR_SECRET}
-ENV CONVEX_ACCESS_TOKEN=${CONVEX_ACCESS_TOKEN}
 
-# Generate Convex client types before building Next.js
-RUN if [ -n "$CONVEX_ACCESS_TOKEN" ]; then npx convex codegen; else echo "Skipping convex codegen (no CONVEX_ACCESS_TOKEN provided)"; fi
+# Note: Convex types are already generated and committed (convex/_generated/)
+# If you need to regenerate types, run 'npx convex codegen' locally before committing
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry

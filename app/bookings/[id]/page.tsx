@@ -412,6 +412,19 @@ export default function BookingConfirmationPage() {
                     {booking.ticket?.name}
                   </p>
                   <p>
+                    <span className="font-medium text-slate-100">Event:</span>{" "}
+                    {booking.event ? (
+                      <Link
+                        href={`/events/${booking.event._id}`}
+                        className="text-indigo-400 font-medium hover:text-indigo-300 transition-colors"
+                      >
+                        {booking.event.name}
+                      </Link>
+                    ) : (
+                      <span className="text-slate-400">Event unavailable</span>
+                    )}
+                  </p>
+                  <p>
                     <span className="font-medium text-slate-100">Quantity:</span>{" "}
                     {booking.quantity}
                   </p>
@@ -484,7 +497,16 @@ export default function BookingConfirmationPage() {
             {/* Event Details */}
             <div className="mb-6 pb-6 border-b border-white/10">
               <h2 className="text-2xl font-bold text-slate-50 mb-4">
-                {booking.event?.name}
+                {booking.event ? (
+                  <Link
+                    href={`/events/${booking.event._id}`}
+                    className="hover:text-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded"
+                  >
+                    {booking.event.name}
+                  </Link>
+                ) : (
+                  "Event details"
+                )}
               </h2>
               
               <div className="space-y-3">

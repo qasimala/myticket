@@ -2,6 +2,7 @@
 
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
@@ -15,7 +16,7 @@ type EventFormState = {
   country: string;
   city: string;
   location: string;
-  imageStorageId: string | null;
+  imageStorageId: Id<"_storage"> | null;
   about: string;
   accessibility: string;
   faqs: Faq[];
@@ -73,7 +74,9 @@ export default function CreateEventForm() {
         throw new Error("Image upload failed. Please try again.");
       }
 
-      const { storageId } = await response.json();
+      const { storageId } = (await response.json()) as {
+        storageId?: Id<"_storage">;
+      };
       if (!storageId) {
         throw new Error("Upload succeeded but no storage ID was returned.");
       }

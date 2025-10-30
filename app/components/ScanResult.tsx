@@ -1,15 +1,29 @@
 'use client';
 
-import { ReactNode } from 'react';
+export type BookingSummary = {
+  id: string;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  quantity: number;
+  eventName?: string | null;
+  ticketName?: string | null;
+  scannedAt?: number | null;
+};
 
-type ScanState =
+export type ScanState =
   | { status: 'idle' }
   | { status: 'scanning' }
-  | { status: 'success'; booking: Record<string, unknown> }
-  | { status: 'already_used'; booking: Record<string, unknown> }
+  | { status: 'success'; booking: BookingSummary }
+  | { status: 'already_used'; booking: BookingSummary }
   | { status: 'error'; message: string };
 
-export default function ScanResult({ scanState, resetScanState }: { scanState: ScanState, resetScanState: () => void }) {
+export default function ScanResult({
+  scanState,
+  resetScanState,
+}: {
+  scanState: ScanState;
+  resetScanState: () => void;
+}) {
   if (scanState.status === 'idle') {
     return (
       <p className="text-sm text-slate-400">
@@ -22,7 +36,7 @@ export default function ScanResult({ scanState, resetScanState }: { scanState: S
     return (
       <div className="flex items-center gap-3 text-indigo-400">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-400"></div>
-        <span className="text-sm font-medium">Validating ticket…</span>
+        <span className="text-sm font-medium">Validating ticket...</span>
       </div>
     );
   }
@@ -37,7 +51,12 @@ export default function ScanResult({ scanState, resetScanState }: { scanState: S
   }
 
   if (scanState.status === 'success' || scanState.status === 'already_used') {
-    const booking = scanState.booking;
+    const { id, customerName, customerEmail, eventName, ticketName, quantity } =
+      scanState.booking;
+    const scannedAt =
+      typeof scanState.booking.scannedAt === 'number'
+        ? scanState.booking.scannedAt
+        : null;
     const badgeStyle =
       scanState.status === 'success'
         ? 'bg-green-500/20 text-green-200 border-green-500/30'
@@ -48,37 +67,38 @@ export default function ScanResult({ scanState, resetScanState }: { scanState: S
         <span
           className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}
         >
-          {scanState.status === 'success' ? 'Ticket Valid' : 'Ticket Already Used'}
+          {scanState.status === 'success'
+            ? 'Ticket Valid'
+            : 'Ticket Already Used'}
         </span>
         <div className="space-y-2 text-sm text-slate-300">
           <p>
             <span className="font-semibold text-slate-100">Booking ID:</span>{' '}
-            {booking.id as string}
+            {id}
           </p>
           <p>
             <span className="font-semibold text-slate-100">Customer:</span>{' '}
-            {(booking.customerName as string) ?? 'Unknown'}
+            {customerName ?? 'Unknown'}
           </p>
           <p>
             <span className="font-semibold text-slate-100">Email:</span>{' '}
-            {(booking.customerEmail as string) ?? '—'}
+            {customerEmail ?? '--'}
           </p>
           <p>
             <span className="font-semibold text-slate-100">Event:</span>{' '}
-            {(booking.eventName as string) ?? '—'}
+            {eventName ?? '--'}
           </p>
           <p>
             <span className="font-semibold text-slate-100">Ticket:</span>{' '}
-            {(booking.ticketName as string) ?? '—'}
+            {ticketName ?? '--'}
           </p>
           <p>
             <span className="font-semibold text-slate-100">Quantity:</span>{' '}
-            {booking.quantity as number}
+            {quantity}
           </p>
-          {booking.scannedAt && (
+          {scannedAt !== null && (
             <p className="text-xs text-slate-400">
-              Marked scanned at:{' '}
-              {new Date(booking.scannedAt as number).toLocaleString()}
+              Marked scanned at: {new Date(scannedAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -91,5 +111,6 @@ export default function ScanResult({ scanState, resetScanState }: { scanState: S
       </div>
     );
   }
+
   return null;
 }

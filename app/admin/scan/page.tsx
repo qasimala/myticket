@@ -6,14 +6,27 @@ import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ShieldAlert } from "lucide-react";
 
-type ScanState =
-  | { status: "idle" }
-  | { status: "scanning" }
-  | { status: "success"; booking: Record<string, unknown> }
-  | { status: "already_used"; booking: Record<string, unknown> }
-  | { status: "error"; message: string };
+import ScanResult, {
+  type BookingSummary,
+  type ScanState,
+} from "../../components/ScanResult";
 
-import ScanResult from "../../components/ScanResult";
+const toBookingSummary = (data: Record<string, unknown>): BookingSummary => ({
+  id: String(data.id ?? ""),
+  customerName:
+    typeof data.customerName === "string" ? data.customerName : null,
+  customerEmail:
+    typeof data.customerEmail === "string" ? data.customerEmail : null,
+  quantity:
+    typeof data.quantity === "number"
+      ? data.quantity
+      : Number.isFinite(Number(data.quantity))
+        ? Number(data.quantity)
+        : 0,
+  eventName: typeof data.eventName === "string" ? data.eventName : null,
+  ticketName: typeof data.ticketName === "string" ? data.ticketName : null,
+  scannedAt: typeof data.scannedAt === "number" ? data.scannedAt : null,
+});
 
 export default function AdminScanPage() {
   const currentUser = useQuery(api.users.current);
@@ -72,9 +85,21 @@ export default function AdminScanPage() {
     try {
       const result = await scanToken({ token: value });
       if (result.status === "ok") {
-        setScanState({ status: "success", booking: result.booking });
+        const booking = toBookingSummary(
+          result.booking as Record<string, unknown>
+        );
+        setScanState({
+          status: "success",
+          booking,
+        });
       } else if (result.status === "already_used") {
-        setScanState({ status: "already_used", booking: result.booking });
+        const booking = toBookingSummary(
+          result.booking as Record<string, unknown>
+        );
+        setScanState({
+          status: "already_used",
+          booking,
+        });
       } else {
         setScanState({
           status: "error",

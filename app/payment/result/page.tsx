@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -8,12 +8,31 @@ import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
 import Link from "next/link";
 
-export default function PaymentResultPage() {
+function PaymentStatusFallback() {
+  return (
+    <MainLayout>
+      <div className="p-6 lg:p-8">
+        <div className="mx-auto w-full">
+          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-6"></div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Loading Payment Status
+            </h3>
+            <p className="text-gray-600">
+              Preparing your payment details...
+            </p>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const bookingId = searchParams.get("bookingId") as Id<"bookings"> | null;
-  const resourcePath = searchParams.get("resourcePath");
-  
+
   const paymentStatus = useQuery(
     api.payments.checkPaymentStatus,
     bookingId ? { bookingId } : "skip"
@@ -28,18 +47,15 @@ export default function PaymentResultPage() {
       return;
     }
 
-    // Poll payment status for up to 10 seconds
     const interval = setInterval(() => {
       setCheckAttempts((prev) => prev + 1);
     }, 2000);
 
-    // Stop checking after 10 attempts (20 seconds)
     if (checkAttempts >= 10) {
       clearInterval(interval);
       setIsChecking(false);
     }
 
-    // Stop checking if payment is completed or failed
     if (paymentStatus && paymentStatus.paymentStatus !== "processing") {
       clearInterval(interval);
       setIsChecking(false);
@@ -65,13 +81,11 @@ export default function PaymentResultPage() {
         <div className="p-6 lg:p-8">
           <div className="mx-auto w-full">
             <div className="bg-white rounded-xl shadow-md p-12 text-center">
-              <div className="text-6xl mb-4">❌</div>
+              <div className="text-6xl mb-4">:(</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Invalid Payment Reference
               </h3>
-              <p className="text-gray-600 mb-6">
-                No booking ID provided
-              </p>
+              <p className="text-gray-600 mb-6">No booking ID provided</p>
               <Link
                 href="/"
                 className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
@@ -108,14 +122,16 @@ export default function PaymentResultPage() {
     );
   }
 
-  // Payment completed successfully
-  if (paymentStatus.paymentStatus === "completed" && paymentStatus.status === "confirmed") {
+  if (
+    paymentStatus.paymentStatus === "completed" &&
+    paymentStatus.status === "confirmed"
+  ) {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
           <div className="mx-auto w-full">
             <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-12 text-center mb-6">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="text-6xl mb-4">:)</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 Payment Successful!
               </h1>
@@ -138,11 +154,10 @@ export default function PaymentResultPage() {
               </div>
             </div>
 
-            {/* Additional Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                💡 <strong>Next Steps:</strong> A confirmation email has been sent
-                to your email address. You can access your booking anytime from "My
+                <strong>Next Steps:</strong> A confirmation email has been sent to
+                your email address. You can access your booking anytime from "My
                 Bookings" in the sidebar.
               </p>
             </div>
@@ -152,14 +167,13 @@ export default function PaymentResultPage() {
     );
   }
 
-  // Payment failed
   if (paymentStatus.paymentStatus === "failed") {
     return (
       <MainLayout>
         <div className="p-6 lg:p-8">
           <div className="mx-auto w-full">
             <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-12 text-center mb-6">
-              <div className="text-6xl mb-4">❌</div>
+              <div className="text-6xl mb-4">:(</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 Payment Failed
               </h1>
@@ -183,11 +197,10 @@ export default function PaymentResultPage() {
               </div>
             </div>
 
-            {/* Help Info */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
-                💡 <strong>Payment Issues?</strong> Please check your card details
-                and try again. If the problem persists, contact your bank or try a
+                <strong>Payment Issues?</strong> Please check your card details and
+                try again. If the problem persists, contact your bank or try a
                 different payment method.
               </p>
             </div>
@@ -197,13 +210,12 @@ export default function PaymentResultPage() {
     );
   }
 
-  // Payment still processing (shouldn't normally happen)
   return (
     <MainLayout>
       <div className="p-6 lg:p-8">
         <div className="mx-auto w-full">
           <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-12 text-center">
-            <div className="text-6xl mb-4">⏳</div>
+            <div className="text-6xl mb-4">...</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Payment Processing
             </h1>
@@ -232,3 +244,10 @@ export default function PaymentResultPage() {
   );
 }
 
+export default function PaymentResultPage() {
+  return (
+    <Suspense fallback={<PaymentStatusFallback />}>
+      <PaymentResultContent />
+    </Suspense>
+  );
+}

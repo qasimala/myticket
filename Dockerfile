@@ -1,7 +1,7 @@
 # Dockerfile for Next.js application
 
 # 1. Install dependencies only when needed
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -17,10 +17,20 @@ RUN \
 
 
 # 2. Rebuild the source code only when needed
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./
 COPY . .
+
+ARG CONVEX_DEPLOYMENT
+ARG NEXT_PUBLIC_CONVEX_URL
+ARG QR_SECRET
+ENV CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
+ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+ENV QR_SECRET=${QR_SECRET}
+
+# Generate Convex client types before building Next.js
+RUN npx convex codegen
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -30,10 +40,14 @@ COPY . .
 RUN npx next build
 
 # 3. Production image, copy all the files and run next
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
+ARG NEXT_PUBLIC_CONVEX_URL
+ARG QR_SECRET
+ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+ENV QR_SECRET=${QR_SECRET}
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
@@ -55,6 +69,6 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 
 CMD ["node", "server.js"]

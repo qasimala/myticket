@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
+import TicketManager from "../../components/TicketManager";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -13,18 +14,19 @@ export default function EventDetailPage() {
   const idParam = Array.isArray(params?.id) ? params?.id[0] : params?.id;
 
   const eventId = idParam ? (idParam as Id<"events">) : null;
-  const event = useQuery(
-    api.events.get,
-    eventId ? { id: eventId } : "skip"
-  );
+  const event = useQuery(api.events.get, eventId ? { id: eventId } : "skip");
   const tickets = useQuery(
     api.tickets.listByEvent,
     eventId ? { eventId } : "skip"
   );
   const currentUser = useQuery(api.users.current);
   const addToCart = useMutation(api.cart.addToCart);
-  const [activeSection, setActiveSection] = useState<"tickets" | "about" | "accessibility" | "faqs">("tickets");
-  const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
+  const [activeSection, setActiveSection] = useState<
+    "tickets" | "about" | "accessibility" | "faqs"
+  >("tickets");
+  const [ticketQuantities, setTicketQuantities] = useState<
+    Record<string, number>
+  >({});
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -94,6 +96,10 @@ export default function EventDetailPage() {
   const totalTickets = tickets.reduce((sum, t) => sum + t.quantity, 0);
   const soldTickets = tickets.reduce((sum, t) => sum + t.sold, 0);
   const availableTickets = totalTickets - soldTickets;
+
+  const isAdmin =
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   let faqs: Array<{ question: string; answer: string }> = [];
   try {
@@ -230,7 +236,9 @@ export default function EventDetailPage() {
                 <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-1">
                   Date & Time
                 </div>
-                <div className="text-slate-100 font-medium">{formatDate(event.date)}</div>
+                <div className="text-slate-100 font-medium">
+                  {formatDate(event.date)}
+                </div>
               </div>
             </div>
 
@@ -240,8 +248,12 @@ export default function EventDetailPage() {
                 <div className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-1">
                   Location
                 </div>
-                <div className="text-slate-100 font-medium">{event.location}</div>
-                <div className="text-sm text-slate-400">{event.city}, {event.country}</div>
+                <div className="text-slate-100 font-medium">
+                  {event.location}
+                </div>
+                <div className="text-sm text-slate-400">
+                  {event.city}, {event.country}
+                </div>
               </div>
             </div>
 
@@ -254,9 +266,7 @@ export default function EventDetailPage() {
                 <div className="text-slate-100 font-medium">
                   {availableTickets} / {totalTickets} tickets
                 </div>
-                <div className="text-sm text-slate-400">
-                  {soldTickets} sold
-                </div>
+                <div className="text-sm text-slate-400">{soldTickets} sold</div>
               </div>
             </div>
           </div>
@@ -311,7 +321,9 @@ export default function EventDetailPage() {
           {/* Tickets Section */}
           {activeSection === "tickets" && (
             <div>
-              <h2 className="text-3xl font-bold text-slate-50 mb-6">Available Tickets</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">
+                Available Tickets
+              </h2>
 
               {tickets.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
@@ -323,7 +335,8 @@ export default function EventDetailPage() {
                   {tickets.map((ticket) => {
                     const availableCount = ticket.quantity - ticket.sold;
                     const quantity = getQuantity(ticket._id);
-                    const isAvailable = ticket.status === "available" && availableCount > 0;
+                    const isAvailable =
+                      ticket.status === "available" && availableCount > 0;
 
                     return (
                       <div
@@ -341,29 +354,40 @@ export default function EventDetailPage() {
                                   ticket.status === "sold_out"
                                     ? "bg-red-500/20 text-red-200"
                                     : ticket.status === "available"
-                                    ? "bg-green-500/20 text-green-200"
-                                    : "bg-slate-500/20 text-slate-200"
+                                      ? "bg-green-500/20 text-green-200"
+                                      : "bg-slate-500/20 text-slate-200"
                                 }`}
                               >
                                 {ticket.status === "sold_out"
                                   ? "Sold Out"
                                   : ticket.status === "available"
-                                  ? "Available"
-                                  : "Hidden"}
+                                    ? "Available"
+                                    : "Hidden"}
                               </span>
                             </div>
-                            <p className="text-slate-300 mb-4 text-lg">{ticket.description}</p>
+                            <p className="text-slate-300 mb-4 text-lg">
+                              {ticket.description}
+                            </p>
                             <div className="flex items-center gap-8">
                               <div>
-                                <div className="text-sm text-slate-400 font-semibold mb-1">Available</div>
+                                <div className="text-sm text-slate-400 font-semibold mb-1">
+                                  Available
+                                </div>
                                 <div className="text-2xl font-bold text-slate-100">
                                   {availableCount}
-                                  <span className="text-sm text-slate-400 font-normal"> / {ticket.quantity}</span>
+                                  <span className="text-sm text-slate-400 font-normal">
+                                    {" "}
+                                    / {ticket.quantity}
+                                  </span>
                                 </div>
                               </div>
                               <div>
-                                <div className="text-sm text-slate-400 font-semibold mb-1">Sold</div>
-                                <div className="text-2xl font-bold text-indigo-400">{ticket.sold}</div>
+                                <div className="text-sm text-slate-400 font-semibold mb-1">
+                                  Sold
+                                </div>
+                                <div className="text-2xl font-bold text-indigo-400">
+                                  {ticket.sold}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -371,13 +395,15 @@ export default function EventDetailPage() {
                             <div className="text-4xl font-bold text-indigo-400 mb-4">
                               {formatPrice(ticket.price)}
                             </div>
-                            
+
                             {currentUser && isAvailable ? (
                               <div className="space-y-3">
                                 {/* Quantity Selector */}
                                 <div className="flex items-center justify-center gap-2">
                                   <button
-                                    onClick={() => updateQuantity(ticket._id, -1)}
+                                    onClick={() =>
+                                      updateQuantity(ticket._id, -1)
+                                    }
                                     disabled={quantity <= 1}
                                     className="w-10 h-10 rounded-lg border-2 border-slate-600 flex items-center justify-center hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                                   >
@@ -387,7 +413,9 @@ export default function EventDetailPage() {
                                     {quantity}
                                   </span>
                                   <button
-                                    onClick={() => updateQuantity(ticket._id, 1)}
+                                    onClick={() =>
+                                      updateQuantity(ticket._id, 1)
+                                    }
                                     disabled={quantity >= availableCount}
                                     className="w-10 h-10 rounded-lg border-2 border-slate-600 flex items-center justify-center hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                                   >
@@ -401,7 +429,9 @@ export default function EventDetailPage() {
                                   disabled={addingToCart === ticket._id}
                                   className="w-full px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {addingToCart === ticket._id ? "Adding..." : "Add to Cart"}
+                                  {addingToCart === ticket._id
+                                    ? "Adding..."
+                                    : "Add to Cart"}
                                 </button>
                               </div>
                             ) : !currentUser && isAvailable ? (
@@ -425,16 +455,23 @@ export default function EventDetailPage() {
                   })}
                 </div>
               )}
+
+              {/* Admin Ticket Management */}
+              {isAdmin && eventId && <TicketManager eventId={eventId} />}
             </div>
           )}
 
           {/* About Section */}
           {activeSection === "about" && (
             <div>
-              <h2 className="text-3xl font-bold text-slate-50 mb-6">About This Event</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">
+                About This Event
+              </h2>
               {event.about ? (
                 <div className="prose prose-lg max-w-none text-slate-300">
-                  <p className="leading-relaxed whitespace-pre-line">{event.about}</p>
+                  <p className="leading-relaxed whitespace-pre-line">
+                    {event.about}
+                  </p>
                 </div>
               ) : (
                 <div className="text-center py-12 text-slate-400">
@@ -448,16 +485,24 @@ export default function EventDetailPage() {
           {/* Accessibility Section */}
           {activeSection === "accessibility" && (
             <div>
-              <h2 className="text-3xl font-bold text-slate-50 mb-6">Accessibility Information</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">
+                Accessibility Information
+              </h2>
               {event.accessibility ? (
                 <div className="prose prose-lg max-w-none text-slate-300">
-                  <p className="leading-relaxed whitespace-pre-line">{event.accessibility}</p>
+                  <p className="leading-relaxed whitespace-pre-line">
+                    {event.accessibility}
+                  </p>
                 </div>
               ) : (
                 <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">♿</div>
-                  <p className="text-lg">No accessibility information available</p>
-                  <p className="text-sm mt-2">Contact the organizers for specific accessibility questions</p>
+                  <p className="text-lg">
+                    No accessibility information available
+                  </p>
+                  <p className="text-sm mt-2">
+                    Contact the organizers for specific accessibility questions
+                  </p>
                 </div>
               )}
             </div>
@@ -466,7 +511,9 @@ export default function EventDetailPage() {
           {/* FAQs Section */}
           {activeSection === "faqs" && (
             <div>
-              <h2 className="text-3xl font-bold text-slate-50 mb-6">Frequently Asked Questions</h2>
+              <h2 className="text-3xl font-bold text-slate-50 mb-6">
+                Frequently Asked Questions
+              </h2>
               {faqs.length > 0 ? (
                 <div className="space-y-4">
                   {faqs.map((faq, index) => (
@@ -487,7 +534,9 @@ export default function EventDetailPage() {
                 <div className="text-center py-12 text-slate-400">
                   <div className="text-6xl mb-4">❓</div>
                   <p className="text-lg">No FAQs available yet</p>
-                  <p className="text-sm mt-2">Check back later for answers to common questions</p>
+                  <p className="text-sm mt-2">
+                    Check back later for answers to common questions
+                  </p>
                 </div>
               )}
             </div>

@@ -9,7 +9,7 @@ export default function AdminPanel() {
   const currentUser = useQuery(api.users.current);
   const allUsers = useQuery(api.users.list);
   const updateRole = useMutation(api.users.updateRole);
-  const removeUser = useMutation(api.users.remove);
+  const deleteUser = useMutation(api.users.deleteUser);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   if (currentUser === undefined || allUsers === undefined) {
@@ -37,23 +37,23 @@ export default function AdminPanel() {
     );
   }
 
-  const handleRoleChange = async (profileId: Id<"userProfiles">, newRole: "user" | "admin" | "superadmin") => {
+  const handleRoleChange = async (userId: Id<"userProfiles">, newRole: "user" | "admin" | "superadmin") => {
     try {
-      setUpdatingUserId(profileId);
-      await updateRole({ profileId, role: newRole });
-    } catch (error: any) {
-      alert(error.message);
+      setUpdatingUserId(userId);
+      await updateRole({ userId, role: newRole });
+    } catch (error: unknown) {
+      alert((error as Error).message);
     } finally {
       setUpdatingUserId(null);
     }
   };
 
-  const handleDeleteUser = async (profileId: Id<"userProfiles">, userName: string) => {
+  const handleDeleteUser = async (userId: Id<"userProfiles">, userName: string) => {
     if (confirm(`Are you sure you want to delete ${userName}? This will also delete all their events.`)) {
       try {
-        await removeUser({ profileId });
-      } catch (error: any) {
-        alert(error.message);
+        await deleteUser({ userId });
+      } catch (error: unknown) {
+        alert((error as Error).message);
       }
     }
   };
@@ -104,7 +104,7 @@ export default function AdminPanel() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
+                        {user.name ? user.name[0].toUpperCase() : user.email ? user.email[0].toUpperCase() : '?'}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-slate-200">
@@ -119,7 +119,7 @@ export default function AdminPanel() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-300">{user.email}</div>
+                    <div className="text-sm text-slate-300">{user.email || 'No email'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {currentUser.role === "superadmin" && user._id !== currentUser._id ? (
@@ -156,7 +156,7 @@ export default function AdminPanel() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {currentUser.role === "superadmin" && user._id !== currentUser._id && (
                       <button
-                        onClick={() => handleDeleteUser(user._id, user.name || user.email)}
+                        onClick={() => handleDeleteUser(user._id, user.name || user.email || 'user')}
                         className="text-red-500 hover:text-red-400"
                       >
                         Delete

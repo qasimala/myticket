@@ -12,6 +12,8 @@ type ScanState =
   | { status: "already_used"; booking: Record<string, unknown> }
   | { status: "error"; message: string };
 
+import ScanResult from "../../components/ScanResult";
+
 export default function AdminScanPage() {
   const currentUser = useQuery(api.users.current);
   const scanToken = useAction(api.bookings.scanQrToken);
@@ -76,12 +78,13 @@ export default function AdminScanPage() {
           message: result.reason ?? "Invalid or expired QR code",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setScanState({
         status: "error",
-        message: error?.message || "Failed to process QR code",
+        message: (error as Error).message || "Failed to process QR code",
       });
-    } finally {
+    }
+    finally {
       setIsProcessing(false);
       setInputValue("");
       inputRef.current?.focus();
@@ -94,90 +97,8 @@ export default function AdminScanPage() {
     inputRef.current?.focus();
   };
 
-  const renderResult = () => {
-    if (scanState.status === "idle") {
-      return (
-        <p className="text-sm text-slate-400">
-          Scan a ticket to see the result here.
-        </p>
-      );
-    }
-
-    if (scanState.status === "scanning") {
-      return (
-        <div className="flex items-center gap-3 text-indigo-400">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-400"></div>
-          <span className="text-sm font-medium">Validating ticket…</span>
-        </div>
-      );
-    }
-
-    if (scanState.status === "error") {
-      return (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/20 p-4 text-red-200">
-          <p className="font-semibold">Scan Failed</p>
-          <p className="text-sm">{scanState.message}</p>
-        </div>
-      );
-    }
-
-    const booking = scanState.booking;
-    const badgeStyle =
-      scanState.status === "success"
-        ? "bg-green-500/20 text-green-200 border-green-500/30"
-        : "bg-yellow-500/20 text-yellow-200 border-yellow-500/30";
-
-    return (
-      <div className="space-y-4 rounded-lg border border-white/10 bg-slate-800/50 p-4 shadow-sm">
-        <span
-          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}
-        >
-          {scanState.status === "success" ? "Ticket Valid" : "Ticket Already Used"}
-        </span>
-        <div className="space-y-2 text-sm text-slate-300">
-          <p>
-            <span className="font-semibold text-slate-100">Booking ID:</span>{" "}
-            {booking.id as string}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-100">Customer:</span>{" "}
-            {(booking.customerName as string) ?? "Unknown"}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-100">Email:</span>{" "}
-            {(booking.customerEmail as string) ?? "—"}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-100">Event:</span>{" "}
-            {(booking.eventName as string) ?? "—"}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-100">Ticket:</span>{" "}
-            {(booking.ticketName as string) ?? "—"}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-100">Quantity:</span>{" "}
-            {booking.quantity as number}
-          </p>
-          {booking.scannedAt && (
-            <p className="text-xs text-slate-400">
-              Marked scanned at:{" "}
-              {new Date(booking.scannedAt as number).toLocaleString()}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={resetScanState}
-          className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-        >
-          Ready for Next Scan
-        </button>
-      </div>
-    );
-  };
-
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto w-full space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-50">Ticket Scanner</h1>
         <p className="mt-2 text-slate-400">
@@ -209,7 +130,7 @@ export default function AdminScanPage() {
           placeholder="Focus here and scan the code"
           autoComplete="off"
           disabled={isProcessing}
-          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-slate-100 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-base text-slate-100 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-500/50 disabled:opacity-50"
         />
         <div className="mt-4 flex items-center gap-3">
           <button
@@ -233,7 +154,7 @@ export default function AdminScanPage() {
         <h2 className="text-lg font-semibold text-slate-100 mb-3">
           Scan Result
         </h2>
-        {renderResult()}
+        <ScanResult scanState={scanState} resetScanState={resetScanState} />
       </div>
 
       <Link

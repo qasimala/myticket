@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -162,7 +161,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               onClick={onClose}
             >
               <div className="relative flex h-11 w-11 items-center justify-center">
-                <Image
+                <img
                   src="/myticket_logo.png"
                   alt="MyTicket"
                   width={44}

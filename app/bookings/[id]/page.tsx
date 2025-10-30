@@ -159,6 +159,7 @@ export default function BookingConfirmationPage({
 
     if (!qrData || qrData.value !== activeToken.value) {
       setQrData(activeToken);
+      setLastQrValue(activeToken.value);
     }
   }, [qrQueue, now, qrData]);
 
@@ -293,6 +294,22 @@ export default function BookingConfirmationPage({
                     {scannedAt && (
                       <p className="mt-2 text-sm text-red-600">
                         Marked as scanned on {scannedAt}.
+                      </p>
+                    )}
+                    {lastQrValue ? (
+                      <div className="mt-4 flex flex-col items-center gap-3">
+                        <div className="rounded-xl border border-gray-300 bg-gray-100 p-4 shadow-inner">
+                          <div style={{ filter: "grayscale(1)", opacity: 0.55 }}>
+                            <QRCode value={lastQrValue} size={192} />
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Preview only – this code is no longer valid for entry.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-xs text-gray-500">
+                        No QR preview available for this scanned ticket.
                       </p>
                     )}
                     <p className="mt-3 text-sm text-red-500">

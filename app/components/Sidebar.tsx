@@ -10,172 +10,177 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+type NavItem = {
+  name: string;
+  path: string;
+  description: string;
+  icon: string;
+  requireAuth?: boolean;
+  requireAdmin?: boolean;
+};
+
+const coreItems: NavItem[] = [
+  {
+    name: "Discover",
+    path: "/",
+    icon: "✨",
+    description: "Curated experiences & highlights",
+  },
+  {
+    name: "My Bookings",
+    path: "/my-bookings",
+    icon: "🎟️",
+    description: "Manage your reservations",
+    requireAuth: true,
+  },
+  {
+    name: "My Events",
+    path: "/my-events",
+    icon: "🎛️",
+    description: "Control the events you host",
+    requireAdmin: true,
+  },
+  {
+    name: "Create Event",
+    path: "/create",
+    icon: "➕",
+    description: "Launch a new luxury experience",
+    requireAdmin: true,
+  },
+];
+
+const adminItems: NavItem[] = [
+  {
+    name: "Admin Console",
+    path: "/admin",
+    icon: "🛡️",
+    description: "Governance, access & roles",
+    requireAdmin: true,
+  },
+  {
+    name: "Ticket Scanner",
+    path: "/admin/scan",
+    icon: "📡",
+    description: "Validate live entry QR codes",
+    requireAdmin: true,
+  },
+];
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const currentUser = useQuery(api.users.current);
 
   const isActive = (path: string) => pathname === path;
+  const isAdmin =
+    currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
 
-  const navItems = [
-    {
-      name: "Events",
-      path: "/",
-      icon: "🎫",
-      description: "Browse all events",
-    },
-    {
-      name: "My Bookings",
-      path: "/my-bookings",
-      icon: "🎟️",
-      description: "Your ticket bookings",
-      requireAuth: true,
-    },
-    {
-      name: "My Events",
-      path: "/my-events",
-      icon: "📋",
-      description: "Events you created",
-      requireAdmin: true,
-    },
-    {
-      name: "Create Event",
-      path: "/create",
-      icon: "➕",
-      description: "Create a new event",
-      requireAdmin: true,
-    },
-  ];
+  const renderLink = (item: NavItem) => {
+    if (item.requireAdmin && !isAdmin) return null;
+    if (item.requireAuth && !currentUser) return null;
 
-  const adminItems = [
-    {
-      name: "Admin Panel",
-      path: "/admin",
-      icon: "👥",
-      description: "Manage users",
-      requireAdmin: true,
-    },
-    {
-      name: "Ticket Scanner",
-      path: "/admin/scan",
-      icon: "🔍",
-      description: "Validate QR tickets",
-      requireAdmin: true,
-    },
-  ];
+    const active = isActive(item.path);
 
-  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+    return (
+      <Link
+        key={item.path}
+        href={item.path}
+        onClick={onClose}
+        className={`group relative flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
+          active
+            ? "bg-gradient-to-r from-white/10 to-white/5 text-white shadow-[0_10px_30px_rgba(79,70,229,0.35)]"
+            : "text-slate-200 hover:bg-white/5"
+        }`}
+      >
+        <span
+          className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-base ${
+            active ? "backdrop-blur-lg" : "backdrop-blur-md"
+          }`}
+        >
+          {item.icon}
+        </span>
+        <div className="flex-1">
+          <div className="text-sm font-semibold tracking-wide">{item.name}</div>
+          <div className="text-xs text-slate-300/70">{item.description}</div>
+        </div>
+        {active && (
+          <span className="absolute -right-2 h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500/40 via-sky-400/40 to-transparent blur-xl" />
+        )}
+      </Link>
+    );
+  };
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        className={`fixed top-0 left-0 z-50 h-screen w-72 transform border-r border-white/10 bg-white/[0.04] backdrop-blur-2xl transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo section */}
-          <div className="p-6 border-b border-gray-200">
-            <Link href="/" className="flex items-center gap-3" onClick={onClose}>
-              <div className="text-3xl">🎫</div>
+        <div className="flex h-full flex-col">
+          <div className="border-b border-white/10 px-6 pb-6 pt-8">
+            <Link
+              href="/"
+              className="group flex items-center gap-3"
+              onClick={onClose}
+            >
+              <div className="relative flex h-11 w-11 items-center justify-center">
+                <span className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 opacity-80 blur-md transition group-hover:opacity-100" />
+                <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950/80 text-lg font-semibold text-white shadow-lg shadow-indigo-500/40">
+                  MT
+                </span>
+              </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">MyTicket</h1>
-                <p className="text-xs text-gray-500">Event Management</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">
+                  MyTicket
+                </p>
+                <p className="text-xs text-slate-400">
+                  Curating premium experiences
+                </p>
               </div>
             </Link>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-1">
-              {navItems.map((item: any) => {
-                // Hide admin-only items from regular users
-                if (item.requireAdmin && !isAdmin) return null;
-                // Hide auth-required items from non-authenticated users
-                if (item.requireAuth && !currentUser) return null;
-
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    onClick={onClose}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive(item.path)
-                        ? "bg-indigo-50 text-indigo-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.description}</div>
-                    </div>
-                  </Link>
-                );
-              })}
+          <nav className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="space-y-2">
+              <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400/80">
+                Journey
+              </p>
+              <div className="mt-3 space-y-2.5">
+                {coreItems.map(renderLink)}
+              </div>
             </div>
 
             {isAdmin && (
-              <>
-                <div className="my-4 border-t border-gray-200"></div>
-                <div className="space-y-1">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
-                    Administration
-                  </div>
-                  {adminItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      href={item.path}
-                      onClick={onClose}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                        isActive(item.path)
-                          ? "bg-purple-50 text-purple-600"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <span className="text-xl">{item.icon}</span>
-                      <div className="flex-1">
-                        <div className="font-medium">{item.name}</div>
-                        <div className="text-xs text-gray-500">{item.description}</div>
-                      </div>
-                    </Link>
-                  ))}
+              <div className="mt-8 space-y-2">
+                <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400/80">
+                  Command
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  {adminItems.map(renderLink)}
                 </div>
-              </>
+              </div>
             )}
           </nav>
 
-          {/* User section at bottom */}
           {currentUser && (
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {currentUser.name || "User"}
+            <div className="border-t border-white/10 px-4 py-5">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white">
+                    {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                        currentUser.role === "superadmin"
-                          ? "bg-purple-100 text-purple-800"
-                          : currentUser.role === "admin"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {currentUser.role}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {currentUser.name || "User"}
+                    </p>
+                    <p className="text-xs text-slate-300/80">{currentUser.role}</p>
                   </div>
                 </div>
               </div>
@@ -186,4 +191,3 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     </>
   );
 }
-

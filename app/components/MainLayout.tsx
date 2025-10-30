@@ -27,47 +27,55 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     `$${(priceInCents / 100).toFixed(2)}`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="aurora-blob aurora-blob--indigo -top-56 -left-24" />
+      <div className="aurora-blob aurora-blob--purple top-1/3 -right-48" />
+      <div className="aurora-blob aurora-blob--teal top-[65%] -left-40" />
+      <div className="grid-overlay" />
+
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main content area */}
-      <div className="flex flex-col min-h-screen lg:ml-64">
-        {/* Header */}
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="relative z-10 flex min-h-screen lg:pl-72">
+        <div className="flex w-full flex-col">
+          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
-        {/* Page content */}
-        <main
-          className={`flex-1 overflow-auto ${
-            hasItems ? "pb-24 lg:pb-28" : ""
-          }`}
-        >
-          {children}
-        </main>
+          <main
+            className={`flex-1 overflow-x-hidden ${
+              hasItems ? "pb-28 lg:pb-32" : "pb-14"
+            }`}
+          >
+            <div className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-10 sm:px-6 lg:px-8">
+              <div className="pointer-events-none absolute inset-0 -z-10 rounded-[3rem] bg-white/5 blur-3xl" />
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
 
       {hasItems && (
-        <div className="fixed inset-x-0 bottom-0 z-50 lg:pl-64">
-          <div className="bg-white border-t border-gray-200 shadow-lg">
-            <div className="px-4 py-4 lg:px-8">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-5 lg:pl-[calc(18rem+1.25rem)]">
+          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_20px_60px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+            <div className="px-5 py-5 lg:px-8 lg:py-6">
+              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Cart Summary</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {totalItems} {totalItems === 1 ? "item" : "items"} •{" "}
-                    {formatPrice(totalPrice)}
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Cart Snapshot
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white md:text-xl">
+                    {totalItems} {totalItems === 1 ? "ticket reserved" : "tickets reserved"} ·{" "}
+                    <span className="text-indigo-300">{formatPrice(totalPrice)}</span>
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <Link
                     href="/cart"
-                    className="text-center px-5 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-white/40 hover:bg-white/10"
                   >
                     View Cart
                   </Link>
                   <Link
                     href="/checkout"
-                    className="text-center px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                    className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-400 to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/40"
                   >
                     Proceed to Checkout
                   </Link>
@@ -80,4 +88,3 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
-

@@ -1,108 +1,133 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../convex/_generated/api";
 import AuthDialog from "./AuthDialog";
-import Link from "next/link";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
-  const user = useQuery(api.users.current);
+  const currentUser = useQuery(api.users.current);
   const cartCount = useQuery(api.cart.getCartCount);
   const { signOut } = useAuthActions();
+
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  const isAdmin =
+    currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="flex items-center justify-between h-16 px-4 lg:px-6">
-          {/* Mobile menu button */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/50 backdrop-blur-2xl">
+        <div className="mx-auto flex h-20 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:px-8">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:border-white/20 hover:bg-white/10 lg:hidden"
           >
             <svg
-              className="w-6 h-6 text-gray-600"
+              className="h-5 w-5"
               fill="none"
               stroke="currentColor"
+              strokeWidth={1.8}
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
-          {/* Page title - hidden on mobile when sidebar is visible */}
-          <div className="flex-1 lg:flex-none">
-            <h2 className="text-lg font-semibold text-gray-900 hidden sm:block">
-              Events Dashboard
-            </h2>
+          <div className="hidden flex-col sm:flex">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.5em] text-slate-400">
+              Experience Control
+            </p>
+            <h1 className="text-xl font-semibold text-slate-100">
+              Curate moments that matter
+            </h1>
           </div>
 
-          {/* Right side actions */}
-          <div className="flex items-center gap-3">
-            {/* Cart icon - only show if user is signed in */}
-            {user && (
+          <div className="ml-auto flex flex-1 items-center justify-end gap-4">
+            <div className="hidden lg:flex lg:flex-1 lg:justify-center">
+              <div className="relative w-full max-w-md">
+                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.6}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-4.35-4.35M9.75 17.5a7.75 7.75 0 1 1 0-15.5 7.75 7.75 0 0 1 0 15.5z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="search"
+                  placeholder="Search headliners, venues, or hosts…"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-sm text-slate-100 transition focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/10"
+                />
+              </div>
+            </div>
+
+            {currentUser && (
               <Link
                 href="/cart"
-                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="relative hidden h-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/10 sm:flex"
               >
-                <svg
-                  className="w-6 h-6 text-gray-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                {cartCount && cartCount > 0 ? (
-                  <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="mr-2 text-base">🛍️</span>
+                <span className="hidden sm:inline">Cart</span>
+                {cartCount && cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 text-[11px] font-bold text-white shadow-lg shadow-indigo-500/30">
                     {cartCount}
                   </span>
-                ) : null}
+                )}
               </Link>
             )}
 
-            {user ? (
+            {isAdmin && (
+              <Link
+                href="/create"
+                className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_18px_45px_rgba(99,102,241,0.35)] transition hover:shadow-[0_22px_65px_rgba(99,102,241,0.45)] sm:flex"
+              >
+                Launch Event
+              </Link>
+            )}
+
+            {currentUser ? (
               <div className="relative">
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  onClick={() => setShowUserMenu((prev) => !prev)}
+                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 transition hover:border-white/20 hover:bg-white/10"
                 >
-                  <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {user.name ? user.name[0].toUpperCase() : "U"}
-                  </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.name || "User"}
-                    </div>
-                  </div>
-                  <span
-                    className={`hidden md:inline-block text-xs px-2 py-1 rounded-full font-semibold ${
-                      user.role === "superadmin"
-                        ? "bg-purple-100 text-purple-800"
-                        : user.role === "admin"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {user.role}
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white">
+                    {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
                   </span>
+                  <div className="hidden text-left md:block">
+                    <p className="text-sm font-semibold text-white">
+                      {currentUser.name || "User"}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                      {currentUser.role}
+                    </p>
+                  </div>
+                  <svg
+                    className={`h-4 w-4 text-slate-400 transition ${
+                      showUserMenu ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                  </svg>
                 </button>
 
                 {showUserMenu && (
@@ -111,13 +136,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowUserMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.name || "User"}
+                    <div className="absolute right-0 z-50 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-900/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+                      <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white">
+                          {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Role: {user.role}
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {currentUser.name || "User"}
+                          </p>
+                          <p className="text-xs text-slate-300">{currentUser.role}</p>
                         </div>
                       </div>
                       <button
@@ -125,9 +153,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                           signOut();
                           setShowUserMenu(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 mt-1"
+                        className="mt-3 w-full rounded-xl bg-white/5 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-white/10"
                       >
-                        Sign Out
+                        Sign out
                       </button>
                     </div>
                   </>
@@ -136,19 +164,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
             ) : (
               <button
                 onClick={() => setShowAuthDialog(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
+                className="rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
               >
-                Sign In
+                Sign in
               </button>
             )}
           </div>
         </div>
       </header>
 
-      {showAuthDialog && (
-        <AuthDialog onClose={() => setShowAuthDialog(false)} />
-      )}
+      {showAuthDialog && <AuthDialog onClose={() => setShowAuthDialog(false)} />}
     </>
   );
 }
-

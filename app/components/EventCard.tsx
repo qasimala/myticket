@@ -1,141 +1,203 @@
 "use client";
 
-import { Doc, Id } from "../../convex/_generated/dataModel";
+import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState } from "react";
 import TicketManager from "./TicketManager";
-import Link from "next/link";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 interface EventCardProps {
   event: Doc<"events">;
+  isAdmin?: boolean;
 }
 
-export default function EventCard({ event }: EventCardProps) {
+const statusStyles: Record<string, { label: string; className: string }> = {
+  published: {
+    label: "Live",
+    className:
+      "from-emerald-400/80 via-emerald-500/60 to-emerald-400/40 text-emerald-50",
+  },
+  draft: {
+    label: "Draft",
+    className:
+      "from-amber-400/80 via-amber-500/50 to-amber-400/40 text-amber-50",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "from-rose-400/80 via-rose-500/50 to-rose-400/40 text-rose-50",
+  },
+};
+
+const infoIcon = (path: string) => (
+  <svg
+    className="h-4 w-4 text-slate-200/80"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    viewBox="0 0 24 24"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d={path} />
+  </svg>
+);
+
+export default function EventCard({ event, isAdmin = false }: EventCardProps) {
   const [showTickets, setShowTickets] = useState(false);
   const tickets = useQuery(api.tickets.listByEvent, { eventId: event._id });
-  const currentUser = useQuery(api.users.current);
   const publishEvent = useMutation(api.events.publish);
   const updateEvent = useMutation(api.events.update);
   const removeEvent = useMutation(api.events.remove);
 
-  const isAdmin = currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+  const totalTickets = tickets?.reduce((sum, ticket) => sum + ticket.quantity, 0) ?? 0;
+  const soldTickets = tickets?.reduce((sum, ticket) => sum + ticket.sold, 0) ?? 0;
+  const occupancy = totalTickets === 0 ? 0 : Math.min(100, Math.round((soldTickets / totalTickets) * 100));
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const statusStyle = statusStyles[event.status] ?? {
+    label: event.status,
+    className: "from-slate-400/70 via-slate-500/50 to-slate-400/30 text-slate-100",
+  };
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "published":
-        return "bg-green-100 text-green-800";
-      case "draft":
-        return "bg-yellow-100 text-yellow-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const totalTickets = tickets?.reduce((sum, t) => sum + t.quantity, 0) || 0;
-  const soldTickets = tickets?.reduce((sum, t) => sum + t.sold, 0) || 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      {event.imageUrl && (
-        <img
-          src={event.imageUrl}
-          alt={event.name}
-          className="w-full h-48 object-cover"
-        />
-      )}
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="text-2xl font-bold text-gray-900">{event.name}</h3>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-              event.status
-            )}`}
-          >
-            {event.status}
-          </span>
-        </div>
-
-        <p className="text-gray-600 mb-4">{event.description}</p>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center text-gray-700">
-            <span className="font-semibold mr-2">📅 Date:</span>
-            {formatDate(event.date)}
+    <div className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-[1px] transition duration-300 hover:border-white/20">
+      <div className="absolute inset-0 rounded-[1.75rem] bg-gradient-to-br from-white/10 via-white/0 to-white/10 opacity-0 transition group-hover:opacity-100" />
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[1.7rem] bg-slate-950/60 backdrop-blur-xl">
+        <div className="relative h-44 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/30 via-purple-500/10 to-transparent" />
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt={event.name}
+              className="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/40 via-purple-500/20 to-indigo-900/40" />
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950 via-slate-950/0 to-transparent" />
+          <div className="absolute left-6 top-6 inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-white/80 backdrop-blur">
+            Elite
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           </div>
-          <div className="flex items-center text-gray-700">
-            <span className="font-semibold mr-2">📍 Location:</span>
-            {event.location}, {event.city}, {event.country}
-          </div>
-          <div className="flex items-center text-gray-700">
-            <span className="font-semibold mr-2">🎫 Tickets:</span>
-            {soldTickets} / {totalTickets} sold
+          <div className="absolute right-6 top-6 rounded-xl border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+            {formatDate(event.date).split(",")[0]}
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          <Link
-            href={`/events/${event._id}`}
-            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-          >
-            View Details
-          </Link>
+        <div className="flex flex-1 flex-col gap-6 p-6 sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-white sm:text-2xl">
+                {event.name}
+              </h3>
+              <p className="mt-2 text-sm text-slate-300/80 line-clamp-2">
+                {event.description}
+              </p>
+            </div>
+            <div
+              className={`rounded-xl bg-gradient-to-br px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.45em] ${statusStyle.className}`}
+            >
+              {statusStyle.label}
+            </div>
+          </div>
 
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => setShowTickets(!showTickets)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                {showTickets ? "Hide Tickets" : "Manage Tickets"}
-              </button>
+          <div className="grid grid-cols-1 gap-3 text-sm text-slate-200/90">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              {infoIcon("M8 7V5a4 4 0 1 1 8 0v2m-9 4h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9.5l-2.3-2.3A1 1 0 0 0 6.5 20H6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z")}
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                  Date
+                </p>
+                <p>{formatDate(event.date)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              {infoIcon("M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 0c-3.866 0-7 1.79-7 4v1.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V15c0-2.21-3.134-4-7-4z")}
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                  Location
+                </p>
+                <p>
+                  {event.location}, {event.city}, {event.country}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400">
+                <span>Occupancy</span>
+                <span className="text-slate-200">{soldTickets} / {totalTickets}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400"
+                  style={{ width: `${occupancy}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-              {event.status === "draft" && (
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/events/${event._id}`}
+              className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/15"
+            >
+              View Experience
+            </Link>
+
+            {isAdmin && (
+              <>
                 <button
-                  onClick={() => publishEvent({ id: event._id })}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  onClick={() => setShowTickets((prev) => !prev)}
+                  className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500/80 to-sky-400/80 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-500/40"
                 >
-                  Publish
+                  {showTickets ? "Hide Ticketing" : "Ticketing Suite"}
                 </button>
-              )}
 
-              {event.status === "published" && (
+                {event.status === "draft" && (
+                  <button
+                    onClick={() => publishEvent({ id: event._id })}
+                    className="inline-flex items-center justify-center rounded-xl border border-emerald-300/40 bg-emerald-400/20 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/30"
+                  >
+                    Publish Event
+                  </button>
+                )}
+
+                {event.status === "published" && (
+                  <button
+                    onClick={() => updateEvent({ id: event._id, status: "cancelled" })}
+                    className="inline-flex items-center justify-center rounded-xl border border-amber-300/40 bg-amber-400/20 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/30"
+                  >
+                    Pause Event
+                  </button>
+                )}
+
                 <button
-                  onClick={() => updateEvent({ id: event._id, status: "cancelled" })}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to delete "${event.name}"?`)) {
+                      removeEvent({ id: event._id });
+                    }
+                  }}
+                  className="inline-flex items-center justify-center rounded-xl border border-rose-300/40 bg-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/30"
                 >
-                  Cancel Event
+                  Delete
                 </button>
-              )}
+              </>
+            )}
+          </div>
 
-              <button
-                onClick={() => {
-                  if (confirm(`Are you sure you want to delete "${event.name}"?`)) {
-                    removeEvent({ id: event._id });
-                  }
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Delete
-              </button>
-            </>
+          {isAdmin && showTickets && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <TicketManager eventId={event._id} />
+            </div>
           )}
         </div>
-
-        {isAdmin && showTickets && <TicketManager eventId={event._id} />}
       </div>
     </div>
   );
 }
-

@@ -51,6 +51,8 @@ In your Easypanel project settings, add these environment variables:
 
 - **Port:** `3000`
 - **Expose Port:** Yes (if you want external access)
+- **Health Check Path:** `/api/health` (if Easypanel asks for it)
+- **Health Check Port:** `3000`
 
 ### Step 4: Deploy!
 
@@ -82,8 +84,9 @@ Push to GitHub → Easypanel auto-deploys
 After deployment:
 
 1. **Check that the app loads:** Visit your Easypanel app URL
-2. **Verify Convex connection:** Open browser DevTools → Network tab → Look for connections to your Convex URL
-3. **Check logs:** In Easypanel, check container logs for any errors
+2. **Check health endpoint:** Visit `https://your-app-url/api/health` - should return `{"status":"ok"}`
+3. **Verify Convex connection:** Open browser DevTools → Network tab → Look for connections to your Convex URL
+4. **Check logs:** In Easypanel, check container logs for any errors
 
 ## 🐛 Troubleshooting
 
@@ -121,6 +124,31 @@ This means Easypanel isn't automatically passing environment variables as build 
 3. **If still not working:**
    - Contact Easypanel support or check their documentation for Docker build arguments
    - The Dockerfile expects these as build arguments for Next.js `NEXT_PUBLIC_*` variables to work
+
+### Issue: "Service is not reachable" / Health check failing
+
+**Solution:**
+
+1. **Check if the app is actually running:**
+   - Look at Easypanel logs - you should see "Ready in Xms"
+   - The app might be starting but health check is failing
+
+2. **Verify health endpoint:**
+   - Try accessing `/api/health` directly: `https://your-app-url/api/health`
+   - Should return: `{"status":"ok","timestamp":"..."}`
+
+3. **Check Easypanel health check settings:**
+   - Make sure health check path is set to `/api/health` or `/`
+   - Verify port is set to `3000`
+   - Health check should hit the root path `/` or `/api/health`
+
+4. **Verify container is listening on correct interface:**
+   - The Dockerfile sets `HOSTNAME="0.0.0.0"` to listen on all interfaces
+   - Make sure `PORT=3000` is set as an environment variable
+
+5. **Wait a bit:**
+   - Next.js might take 30-60 seconds to fully start
+   - Check logs to see when it says "Ready"
 
 ### Issue: Types are out of date
 

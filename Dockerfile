@@ -25,12 +25,14 @@ COPY . .
 ARG CONVEX_DEPLOYMENT
 ARG NEXT_PUBLIC_CONVEX_URL
 ARG QR_SECRET
+ARG CONVEX_ACCESS_TOKEN
 ENV CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 ENV QR_SECRET=${QR_SECRET}
+ENV CONVEX_ACCESS_TOKEN=${CONVEX_ACCESS_TOKEN}
 
 # Generate Convex client types before building Next.js
-RUN npx convex codegen
+RUN if [ -n "$CONVEX_ACCESS_TOKEN" ]; then npx convex codegen; else echo "Skipping convex codegen (no CONVEX_ACCESS_TOKEN provided)"; fi
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry

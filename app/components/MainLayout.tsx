@@ -31,6 +31,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="aurora-blob aurora-blob--indigo -top-56 -left-24" />
       <div className="aurora-blob aurora-blob--purple top-1/3 -right-48" />
       <div className="aurora-blob aurora-blob--teal top-[65%] -left-40" />
+      <div className="home-hero-ambient" />
       <div className="grid-overlay" />
 
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -45,8 +46,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             }`}
           >
             <div className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-10 sm:px-6 lg:px-8">
-              <div className="pointer-events-none absolute inset-0 -z-10 rounded-[3rem] bg-white/5 blur-3xl" />
-              {children}
+              <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[3rem] border border-white/10 bg-white/[0.04] shadow-[0_50px_140px_rgba(15,23,42,0.55)]" />
+              <div className="pointer-events-none absolute inset-4 -z-10 rounded-[3rem] bg-gradient-to-br from-indigo-500/15 via-transparent to-sky-400/10 blur-3xl opacity-70" />
+              <div className="pointer-events-none absolute inset-x-10 top-6 -z-10 h-32 rounded-full bg-gradient-to-r from-indigo-400/20 via-transparent to-purple-400/20 blur-2xl" />
+              <div className="relative animate-fade-in">
+                {children}
+              </div>
             </div>
           </main>
         </div>
@@ -54,7 +59,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {hasItems && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-5 lg:pl-[calc(18rem+1.25rem)]">
-          <div className="pointer-events-auto rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_20px_60px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_28px_70px_rgba(15,23,42,0.55)] backdrop-blur-xl animate-fade-up">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-70" />
             <div className="px-5 py-5 lg:px-8 lg:py-6">
               <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -62,7 +68,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     Cart Snapshot
                   </p>
                   <p className="mt-2 text-lg font-semibold text-white md:text-xl">
-                    {totalItems} {totalItems === 1 ? "ticket reserved" : "tickets reserved"} ·{" "}
+                    {totalItems} {totalItems === 1 ? "ticket reserved" : "tickets reserved"} |{" "}
                     <span className="text-indigo-300">{formatPrice(totalPrice)}</span>
                   </p>
                 </div>
@@ -88,4 +94,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
+
+
 

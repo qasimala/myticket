@@ -123,7 +123,7 @@ export default function BookingConfirmationPage({
 
     const interval = setInterval(() => {
       setNow(Date.now());
-    }, 1000);
+    }, 1000 / 30);
 
     return () => clearInterval(interval);
   }, [qrData, booking?.scanned]);
@@ -180,8 +180,19 @@ export default function BookingConfirmationPage({
     qrData && !isScanned ? Math.round(qrData.windowMs / 1000) : null;
   const remainingSeconds =
     qrData && !isScanned
-      ? Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000))
+      ? Math.max(0, (qrData.expiresAt - now) / 1000)
       : null;
+
+  const progressPercent =
+    remainingSeconds !== null &&
+    refreshSeconds !== null &&
+    refreshSeconds > 0
+      ? Math.max(0, Math.min(100, (remainingSeconds / refreshSeconds) * 100))
+      : null;
+  const gradientDegrees =
+    progressPercent !== null ? (progressPercent / 100) * 360 : null;
+  const remainingSecondsDisplay =
+    remainingSeconds !== null ? Math.ceil(remainingSeconds) : null;
 
   const canManageScan =
     !!currentUser &&
@@ -254,15 +265,34 @@ export default function BookingConfirmationPage({
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
                   </div>
                 ) : (
-                  <div className="inline-flex flex-col items-center rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <QRCode value={qrData.value} size={192} />
+                  <div className="relative inline-flex flex-col items-center rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div
+                      className="relative inline-flex items-center justify-center rounded-2xl p-3 transition-all duration-200"
+                      style={
+                        gradientDegrees !== null
+                          ? {
+                              background: `conic-gradient(#4f46e5 ${gradientDegrees}deg, rgba(79,70,229,0.1) ${gradientDegrees}deg 360deg)`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className="rounded-xl bg-white p-3 shadow-inner">
+                        <QRCode value={qrData.value} size={192} />
+                      </div>
+                      {progressPercent !== null && (
+                        <span className="absolute -top-2 right-2 flex h-3 w-3">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-300 opacity-75"></span>
+                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500"></span>
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-4 text-center text-sm text-gray-500">
                       Present this animated QR code at the entrance. Screenshots
                       expire quickly.
                     </p>
-                    {remainingSeconds !== null && refreshSeconds !== null && (
+                    {remainingSecondsDisplay !== null && refreshSeconds !== null && (
                       <p className="mt-2 text-center text-xs text-gray-400">
-                        Valid for {remainingSeconds}s · Refreshes every{" "}
+                        Valid for {remainingSecondsDisplay}s · Refreshes every{" "}
                         {refreshSeconds}s
                       </p>
                     )}

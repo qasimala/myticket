@@ -29,7 +29,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const isAdmin =
-    currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   return (
     <>
@@ -39,7 +40,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <div className="absolute -top-32 left-1/2 h-32 w-[65%] -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500/15 via-transparent to-purple-500/15 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto flex h-20 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="relative mx-auto flex h-20 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 xl:px-12">
           <button
             onClick={onMenuClick}
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:border-white/20 hover:bg-white/10 lg:hidden animate-fade-up"
@@ -49,7 +50,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           <div className="hidden flex-col gap-1 sm:flex animate-fade-up animation-delay-1">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.45em] text-slate-300/80">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-200" strokeWidth={1.8} />
+              <Sparkles
+                className="h-3.5 w-3.5 text-indigo-200"
+                strokeWidth={1.8}
+              />
               Experience Control
             </span>
             <h1 className="text-xl font-semibold text-slate-100">
@@ -135,13 +139,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-60" />
                       <div className="flex items-center gap-3 border-b border-white/10 pb-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white">
-                          {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+                          {currentUser.name
+                            ? currentUser.name[0].toUpperCase()
+                            : "U"}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white">
                             {currentUser.name || "User"}
                           </p>
-                          <p className="text-xs text-slate-300">{currentUser.role}</p>
+                          <p className="text-xs text-slate-300">
+                            {currentUser.role}
+                          </p>
                         </div>
                       </div>
                       <button
@@ -170,7 +178,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </div>
       </header>
 
-      {showAuthDialog && <AuthDialog onClose={() => setShowAuthDialog(false)} />}
+      {showAuthDialog && (
+        <AuthDialog onClose={() => setShowAuthDialog(false)} />
+      )}
     </>
   );
 }

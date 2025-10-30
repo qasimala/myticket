@@ -313,7 +313,7 @@ export default function EventTicketsPage() {
       </div>
 
       {/* Tickets Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {eventBookings.map((booking) => {
           const qrData = qrDataMap.get(booking._id);
           const qrError = qrErrors.get(booking._id);

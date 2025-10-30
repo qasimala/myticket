@@ -102,7 +102,7 @@ export default function MyBookingsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {bookingsByEvent.map(({ event, bookings }) => {
             if (!event) return null;
             const totalTickets = totalTicketsForEvent(event._id);

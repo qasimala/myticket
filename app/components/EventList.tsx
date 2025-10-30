@@ -29,7 +29,8 @@ export default function EventList() {
   const myEvents = useQuery(api.events.myEvents);
 
   const isAdmin =
-    currentUser && (currentUser.role === "admin" || currentUser.role === "superadmin");
+    currentUser &&
+    (currentUser.role === "admin" || currentUser.role === "superadmin");
 
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [timeframe, setTimeframe] = useState<Timeframe>("upcoming");
@@ -52,16 +53,19 @@ export default function EventList() {
       return true;
     });
 
-    filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    filtered.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
     const upcomingTotal = Array.isArray(allEvents)
-      ? allEvents.filter(
-          (event) => new Date(event.date).getTime() >= now
-        ).length
+      ? allEvents.filter((event) => new Date(event.date).getTime() >= now)
+          .length
       : 0;
 
     const hostSet = new Set(
-      (Array.isArray(allEvents) ? allEvents : []).map((event) => event.createdBy)
+      (Array.isArray(allEvents) ? allEvents : []).map(
+        (event) => event.createdBy
+      )
     );
 
     return {
@@ -86,20 +90,21 @@ export default function EventList() {
     },
   ];
 
-  const timeframeInfo: Record<Timeframe, { title: string; subtitle: string }> = {
-    upcoming: {
-      title: "Upcoming spotlights",
-      subtitle: "Secure elevated experiences for the days ahead.",
-    },
-    all: {
-      title: "All curated dates",
-      subtitle: "Review every experience in one premium stream.",
-    },
-    past: {
-      title: "Past highlights",
-      subtitle: "Reflect on signature events and host momentum.",
-    },
-  };
+  const timeframeInfo: Record<Timeframe, { title: string; subtitle: string }> =
+    {
+      upcoming: {
+        title: "Upcoming spotlights",
+        subtitle: "Secure elevated experiences for the days ahead.",
+      },
+      all: {
+        title: "All curated dates",
+        subtitle: "Review every experience in one premium stream.",
+      },
+      past: {
+        title: "Past highlights",
+        subtitle: "Reflect on signature events and host momentum.",
+      },
+    };
 
   const EmptyIcon = timeframe === "past" ? Clock3 : CalendarX2;
 
@@ -113,7 +118,10 @@ export default function EventList() {
         <div className="relative flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-6 lg:max-w-xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.5em] text-slate-200/90">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-200" strokeWidth={1.8} />
+              <Sparkles
+                className="h-3.5 w-3.5 text-indigo-200"
+                strokeWidth={1.8}
+              />
               Premium Access
             </span>
             <div className="space-y-4">
@@ -121,8 +129,9 @@ export default function EventList() {
                 Craft experiences that feel extraordinary
               </h1>
               <p className="max-w-xl text-sm text-slate-200/80 sm:text-base">
-                Browse curated events or elevate the vibe with your own. Every experience is
-                designed to impress VIP guests and discerning audiences.
+                Browse curated events or elevate the vibe with your own. Every
+                experience is designed to impress VIP guests and discerning
+                audiences.
               </p>
             </div>
 
@@ -136,7 +145,10 @@ export default function EventList() {
                     style={{ animationDelay: `${0.1 * index}s` }}
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                      <Icon className="h-5 w-5 text-indigo-200" strokeWidth={1.7} />
+                      <Icon
+                        className="h-5 w-5 text-indigo-200"
+                        strokeWidth={1.7}
+                      />
                     </span>
                     <div>
                       <p className="text-lg font-semibold text-white">
@@ -186,7 +198,9 @@ export default function EventList() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
                 >
                   <Crown className="h-4 w-4" strokeWidth={1.8} />
-                  {isAdmin ? "Plan a Signature Event" : "Explore Premium Highlights"}
+                  {isAdmin
+                    ? "Plan a Signature Event"
+                    : "Explore Premium Highlights"}
                 </Link>
               </div>
             </div>
@@ -198,7 +212,8 @@ export default function EventList() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-white/[0.04] px-5 py-5 sm:px-7 sm:py-6">
           <div>
             <h2 className="text-xl font-semibold text-white md:text-2xl">
-              Presents tailored for {viewMode === "mine" ? "your guests" : "your audience"}
+              Presents tailored for{" "}
+              {viewMode === "mine" ? "your guests" : "your audience"}
             </h2>
             <p className="text-sm text-slate-300/80">
               {timeframeInfo[timeframe].subtitle}
@@ -222,7 +237,7 @@ export default function EventList() {
         </div>
 
         {eventsLoading ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={`event-skeleton-${idx}`}
@@ -243,7 +258,10 @@ export default function EventList() {
         ) : events.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/15 bg-white/5 px-8 py-14 text-center text-slate-200">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-2xl">
-              <EmptyIcon className="h-6 w-6 text-indigo-200" strokeWidth={1.8} />
+              <EmptyIcon
+                className="h-6 w-6 text-indigo-200"
+                strokeWidth={1.8}
+              />
             </div>
             <h3 className="mt-6 text-xl font-semibold text-white">
               No events in this view yet
@@ -255,7 +273,7 @@ export default function EventList() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {events.map((event, index) => (
               <div
                 key={event._id}

@@ -7,7 +7,11 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { api } from "../../convex/_generated/api";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const cart = useQuery(api.cart.getCart);
 
@@ -19,7 +23,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   );
   const totalPrice = cartItems.reduce(
     (sum: number, item: any) =>
-      sum + ((item?.ticket?.price ?? 0) * (item?.quantity ?? 0)),
+      sum + (item?.ticket?.price ?? 0) * (item?.quantity ?? 0),
     0
   );
 
@@ -45,13 +49,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               hasItems ? "pb-28 lg:pb-32" : "pb-14"
             }`}
           >
-            <div className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-10 sm:px-6 lg:px-8">
-              <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[3rem] border border-white/10 bg-white/[0.04] shadow-[0_50px_140px_rgba(15,23,42,0.55)]" />
-              <div className="pointer-events-none absolute inset-4 -z-10 rounded-[3rem] bg-gradient-to-br from-indigo-500/15 via-transparent to-sky-400/10 blur-3xl opacity-70" />
-              <div className="pointer-events-none absolute inset-x-10 top-6 -z-10 h-32 rounded-full bg-gradient-to-r from-indigo-400/20 via-transparent to-purple-400/20 blur-2xl" />
-              <div className="relative animate-fade-in">
-                {children}
-              </div>
+            <div className="relative mx-auto w-full px-4 pb-12 pt-10 sm:px-6 lg:px-8 xl:px-12">
+              <div className="relative animate-fade-in">{children}</div>
             </div>
           </main>
         </div>
@@ -68,8 +67,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     Cart Snapshot
                   </p>
                   <p className="mt-2 text-lg font-semibold text-white md:text-xl">
-                    {totalItems} {totalItems === 1 ? "ticket reserved" : "tickets reserved"} |{" "}
-                    <span className="text-indigo-300">{formatPrice(totalPrice)}</span>
+                    {totalItems}{" "}
+                    {totalItems === 1 ? "ticket reserved" : "tickets reserved"}{" "}
+                    |{" "}
+                    <span className="text-indigo-300">
+                      {formatPrice(totalPrice)}
+                    </span>
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -94,6 +97,3 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
-
-
-

@@ -1,15 +1,41 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { getCurrentUser, requireRole } from "./users";
+
+type EventRecord = {
+  imageStorageId?: string;
+  imageUrl?: string;
+};
+
+const withEventImageUrl = async <T extends EventRecord>(
+  ctx: QueryCtx,
+  event: T
+): Promise<T> => {
+  if (event?.imageStorageId) {
+    const url = await ctx.storage.getUrl(event.imageStorageId);
+    return {
+      ...event,
+      imageUrl: url ?? event.imageUrl ?? undefined,
+    };
+  }
+  return event;
+};
+
+const mapEventsWithImages = async <T extends EventRecord>(
+  ctx: QueryCtx,
+  events: T[]
+) => Promise.all(events.map((event) => withEventImageUrl(ctx, event)));
 
 // Query to get all events (public)
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const events = await ctx.db
       .query("events")
       .order("desc")
       .collect();
+    return await mapEventsWithImages(ctx, events);
   },
 });
 
@@ -24,7 +50,8 @@ export const myEvents = query({
 
     // Get all events and filter by creator (handles both legacy and new events)
     const allEvents = await ctx.db.query("events").collect();
-    return allEvents.filter(event => event.createdBy === user._id);
+    const filtered = allEvents.filter(event => event.createdBy === user._id);
+    return await mapEventsWithImages(ctx, filtered);
   },
 });
 
@@ -35,7 +62,8 @@ export const listPublished = query({
     const events = await ctx.db
       .query("events")
       .collect();
-    return events.filter(event => event.status === "published");
+    const published = events.filter(event => event.status === "published");
+    return await mapEventsWithImages(ctx, published);
   },
 });
 
@@ -43,7 +71,9 @@ export const listPublished = query({
 export const get = query({
   args: { id: v.id("events") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const event = await ctx.db.get(args.id);
+    if (!event) return null;
+    return await withEventImageUrl(ctx, event);
   },
 });
 
@@ -57,6 +87,7 @@ export const create = mutation({
     city: v.string(),
     location: v.string(),
     imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
     about: v.string(),
     accessibility: v.string(),
     faqs: v.string(),
@@ -65,6 +96,10 @@ export const create = mutation({
     // Require admin or superadmin role
     const user = await requireRole(ctx, ["admin", "superadmin"]);
 
+    const storageUrl = args.imageStorageId
+      ? await ctx.storage.getUrl(args.imageStorageId)
+      : undefined;
+
     const eventId = await ctx.db.insert("events", {
       name: args.name,
       description: args.description,
@@ -72,7 +107,8 @@ export const create = mutation({
       country: args.country,
       city: args.city,
       location: args.location,
-      imageUrl: args.imageUrl,
+      imageUrl: storageUrl ?? args.imageUrl,
+      imageStorageId: args.imageStorageId,
       about: args.about,
       accessibility: args.accessibility,
       faqs: args.faqs,
@@ -95,6 +131,7 @@ export const update = mutation({
     city: v.optional(v.string()),
     location: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
     about: v.optional(v.string()),
     accessibility: v.optional(v.string()),
     faqs: v.optional(v.string()),
@@ -112,7 +149,16 @@ export const update = mutation({
       throw new Error("You don't have permission to update this event");
     }
 
-    const { id, ...updates } = args;
+    const { id, imageStorageId, ...rest } = args;
+    const updates: Record<string, any> = { ...rest };
+
+    if (imageStorageId !== undefined) {
+      updates.imageStorageId = imageStorageId;
+      updates.imageUrl = imageStorageId
+        ? await ctx.storage.getUrl(imageStorageId)
+        : updates.imageUrl;
+    }
+
     await ctx.db.patch(id, updates);
   },
 });
@@ -165,3 +211,10 @@ export const publish = mutation({
   },
 });
 
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireRole(ctx, ["admin", "superadmin"]);
+    return await ctx.storage.generateUploadUrl();
+  },
+});

@@ -21,6 +21,7 @@ export default defineSchema({
     city: v.string(),
     location: v.string(), // Venue name
     imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
     about: v.string(), // Detailed information about the event
     accessibility: v.string(), // Accessibility information
     faqs: v.string(), // FAQs in JSON string format (array of {question, answer})

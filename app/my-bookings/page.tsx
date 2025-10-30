@@ -1,15 +1,17 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import MainLayout from "../components/MainLayout";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronRight, Calendar, MapPin, Ticket } from "lucide-react";
 
 export default function MyBookingsPage() {
+  const router = useRouter();
   const currentUser = useQuery(api.users.current);
-  const bookings = useQuery(api.bookings.myBookings);
-  const cancelBooking = useMutation(api.bookings.cancelBooking);
+  const bookingsByEvent = useQuery(api.bookings.myBookingsByEvent);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -34,21 +36,7 @@ export default function MyBookingsPage() {
     });
   };
 
-  const handleCancelBooking = async (bookingId: Id<"bookings">) => {
-    if (
-      confirm(
-        "Are you sure you want to cancel this booking? This action cannot be undone."
-      )
-    ) {
-      try {
-        await cancelBooking({ bookingId });
-      } catch (err: any) {
-        alert(err.message || "Failed to cancel booking");
-      }
-    }
-  };
-
-  if (currentUser === undefined || bookings === undefined) {
+  if (currentUser === undefined || bookingsByEvent === undefined) {
     return (
       <MainLayout>
         <div className="animate-pulse space-y-4">
@@ -76,16 +64,28 @@ export default function MyBookingsPage() {
     );
   }
 
+  const totalTicketsForEvent = (eventId: Id<"events">) => {
+    const group = bookingsByEvent.find((g) => g.event?._id === eventId);
+    if (!group) return 0;
+    return group.bookings.reduce((sum, b) => sum + b.quantity, 0);
+  };
+
+  const totalPriceForEvent = (eventId: Id<"events">) => {
+    const group = bookingsByEvent.find((g) => g.event?._id === eventId);
+    if (!group) return 0;
+    return group.bookings.reduce((sum, b) => sum + b.totalPrice, 0);
+  };
+
   return (
     <MainLayout>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-50">My Bookings</h1>
         <p className="text-slate-400 mt-1">
-          View and manage your ticket bookings
+          View events you&apos;ve booked tickets for
         </p>
       </div>
 
-      {bookings.length === 0 ? (
+      {bookingsByEvent.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-16 text-center text-slate-100 shadow-xl backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-3xl">
             🎟️
@@ -102,114 +102,106 @@ export default function MyBookingsPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {bookings.map((booking) => (
-            <div
-              key={booking._id}
-              className="border border-white/10 rounded-2xl bg-slate-900/80 shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Event Image */}
-                  {booking.event?.imageUrl && (
-                    <div className="lg:w-48 h-32 lg:h-auto flex-shrink-0">
-                      <img
-                        src={booking.event.imageUrl}
-                        alt={booking.event.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {bookingsByEvent.map(({ event, bookings }) => {
+            if (!event) return null;
+            const totalTickets = totalTicketsForEvent(event._id);
+            const totalPrice = totalPriceForEvent(event._id);
+            const hasPending = bookings.some(
+              (b) => b.paymentStatus === "pending"
+            );
+            const hasConfirmed = bookings.some((b) => b.status === "confirmed");
 
-                  {/* Booking Details */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <Link
-                          href={`/events/${booking.event?._id}`}
-                          className="text-xl font-bold text-slate-50 hover:text-indigo-400"
-                        >
-                          {booking.event?.name}
-                        </Link>
-                        <div className="text-sm text-slate-400 mt-1">
-                          Booked on {formatBookingDate(booking.bookingDate)}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 items-end">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                            booking.status === "confirmed"
-                              ? "bg-green-500/20 text-green-200"
-                              : booking.status === "cancelled"
-                              ? "bg-red-500/20 text-red-200"
-                              : "bg-yellow-500/20 text-yellow-200"
-                          }`}
-                        >
-                          {booking.status}
-                        </span>
-                        {booking.paymentStatus === "pending" && (
-                          <Link
-                            href={`/payment/${booking._id}`}
-                            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
-                          >
-                            Complete Payment →
-                          </Link>
-                        )}
-                      </div>
-                    </div>
+            return (
+              <div
+                key={event._id}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-lg transition-all hover:border-white/20 hover:shadow-xl animate-fade-up"
+              >
+                {/* Event Image */}
+                {event.imageUrl && (
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={event.imageUrl}
+                      alt={event.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent" />
+                  </div>
+                )}
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-slate-300">
-                        <span className="text-sm">
-                          📅 {booking.event?.date && formatDate(booking.event.date)}
+                {/* Event Content */}
+                <div className="p-6">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-slate-50 mb-2 line-clamp-2">
+                      {event.name}
+                    </h3>
+                    <div className="space-y-2 text-sm text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <Calendar
+                          className="h-4 w-4 text-slate-400"
+                          strokeWidth={1.8}
+                        />
+                        <span>{formatDate(event.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin
+                          className="h-4 w-4 text-slate-400"
+                          strokeWidth={1.8}
+                        />
+                        <span className="line-clamp-1">
+                          {event.location}, {event.city}
                         </span>
                       </div>
-                      <div className="flex items-center text-slate-300">
-                        <span className="text-sm">
-                          📍 {booking.event?.location}, {booking.event?.city},{" "}
-                          {booking.event?.country}
+                      <div className="flex items-center gap-2">
+                        <Ticket
+                          className="h-4 w-4 text-slate-400"
+                          strokeWidth={1.8}
+                        />
+                        <span>
+                          {totalTickets}{" "}
+                          {totalTickets === 1 ? "ticket" : "tickets"}
                         </span>
-                      </div>
-                      <div className="flex items-center text-slate-300">
-                        <span className="text-sm">
-                          🎫 {booking.ticket?.name} × {booking.quantity}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                      <div>
-                        <div className="text-sm text-slate-400">Total Paid</div>
-                        <div className="text-2xl font-bold text-slate-50">
-                          {formatPrice(booking.totalPrice)}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/bookings/${booking._id}`}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-sm"
-                        >
-                          View Details
-                        </Link>
-                        {booking.status === "confirmed" && (
-                          <button
-                            onClick={() => handleCancelBooking(booking._id)}
-                            className="px-4 py-2 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors font-semibold text-sm"
-                          >
-                            Cancel
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div>
+                      <div className="text-xs text-slate-400 uppercase tracking-wider">
+                        Total Spent
+                      </div>
+                      <div className="text-xl font-bold text-slate-50">
+                        {formatPrice(totalPrice)}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/my-bookings/${event._id}`}
+                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/10"
+                    >
+                      View Tickets
+                      <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
+                    </Link>
+                  </div>
+
+                  {/* Status badges */}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {hasPending && (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-200">
+                        Payment Pending
+                      </span>
+                    )}
+                    {hasConfirmed && (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-200">
+                        Confirmed
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </MainLayout>
   );
 }
-

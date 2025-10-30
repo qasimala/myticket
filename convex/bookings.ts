@@ -92,6 +92,96 @@ export const myBookings = query({
   },
 });
 
+// Query to get user's bookings grouped by event
+export const myBookingsByEvent = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    // Enrich with ticket and event details
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const ticket = await ctx.db.get(booking.ticketId);
+        const event = await ctx.db.get(booking.eventId);
+        return {
+          ...booking,
+          ticket,
+          event,
+        };
+      })
+    );
+
+    // Group by event
+    type EnrichedBooking = (typeof enrichedBookings)[0];
+    const groupedByEvent = new Map<
+      string,
+      {
+        event: EnrichedBooking["event"];
+        bookings: EnrichedBooking[];
+      }
+    >();
+
+    for (const booking of enrichedBookings) {
+      if (!booking.event) continue;
+      const eventId = booking.event._id;
+
+      if (!groupedByEvent.has(eventId)) {
+        groupedByEvent.set(eventId, {
+          event: booking.event,
+          bookings: [],
+        });
+      }
+
+      groupedByEvent.get(eventId)!.bookings.push(booking);
+    }
+
+    // Convert to array and sort by most recent booking date
+    return Array.from(groupedByEvent.values()).sort((a, b) => {
+      const aLatest = Math.max(...a.bookings.map((b) => b.bookingDate));
+      const bLatest = Math.max(...b.bookings.map((b) => b.bookingDate));
+      return bLatest - aLatest;
+    });
+  },
+});
+
+// Query to get all bookings for a specific event for the current user
+export const getBookingsByEvent = query({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .order("desc")
+      .collect();
+
+    // Enrich with ticket and event details
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const ticket = await ctx.db.get(booking.ticketId);
+        const event = await ctx.db.get(booking.eventId);
+        return {
+          ...booking,
+          ticket,
+          event,
+        };
+      })
+    );
+
+    return enrichedBookings;
+  },
+});
+
 type ScanResult =
   | { status: "ok"; booking: Record<string, unknown> }
   | { status: "already_used"; booking: Record<string, unknown> }
@@ -128,8 +218,8 @@ export const scanQrToken = action({
       typeof tsRaw === "number"
         ? tsRaw
         : typeof tsRaw === "string"
-        ? Number(tsRaw)
-        : NaN;
+          ? Number(tsRaw)
+          : NaN;
 
     if (
       typeof bookingIdRaw !== "string" ||
@@ -505,8 +595,7 @@ export const generateQrToken = action({
 
     const currentUser = await ctx.runQuery(api.users.current, {});
     const isBookingOwner = booking.userId === userId;
-    const isEventOwner =
-      currentUser && event.createdBy === currentUser._id;
+    const isEventOwner = currentUser && event.createdBy === currentUser._id;
     const isPrivileged =
       currentUser &&
       (currentUser.role === "admin" || currentUser.role === "superadmin");

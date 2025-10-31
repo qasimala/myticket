@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { ArrowLeft, Calendar, MapPin, Ticket } from "lucide-react";
+import { useQrTokenGenerator } from "../../lib/qrTokenGenerator";
 
 type QrData = {
   value: string;
@@ -31,7 +32,7 @@ export default function EventTicketsPage() {
   );
   const event =
     eventBookings && eventBookings.length > 0 ? eventBookings[0].event : null;
-  const generateQrToken = useAction(api.bookings.generateQrToken);
+  const { generateTokens, isUsingLocalGeneration } = useQrTokenGenerator();
 
   const [qrDataMap, setQrDataMap] = useState<Map<string, QrData>>(new Map());
   const [qrQueues, setQrQueues] = useState<Map<string, QrData[]>>(new Map());
@@ -73,10 +74,11 @@ export default function EventTicketsPage() {
       if (fetchingRefs.current.get(bookingId)) return;
       const booking = eventBookings?.find((b) => b._id === bookingId);
       if (!booking || booking.scanned) return;
+      if (!booking.ticketId) return;
 
       fetchingRefs.current.set(bookingId, true);
       try {
-        const result = await generateQrToken({ bookingId });
+        const result = await generateTokens(bookingId, booking.ticketId);
         const nowTime = Date.now();
         const tokens = Array.isArray(result.tokens)
           ? result.tokens
@@ -129,7 +131,7 @@ export default function EventTicketsPage() {
         fetchingRefs.current.set(bookingId, false);
       }
     },
-    [eventBookings, generateQrToken]
+    [eventBookings, generateTokens]
   );
 
   // Initialize QR tokens for all bookings

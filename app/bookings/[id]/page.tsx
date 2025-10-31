@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
@@ -9,6 +9,7 @@ import WalletButtons from "../../components/WalletButtons";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import { useParams } from "next/navigation";
+import { useQrTokenGenerator } from "../../lib/qrTokenGenerator";
 
 type QrData = {
   value: string;
@@ -27,7 +28,7 @@ export default function BookingConfirmationPage() {
   );
   const currentUser = useQuery(api.users.current);
   const updateScanStatus = useMutation(api.bookings.setScannedStatus);
-  const generateQrToken = useAction(api.bookings.generateQrToken);
+  const { generateTokens, isUsingLocalGeneration } = useQrTokenGenerator();
 
   const [qrQueue, setQrQueue] = useState<QrData[]>([]);
   const [qrData, setQrData] = useState<QrData | null>(null);
@@ -73,10 +74,11 @@ export default function BookingConfirmationPage() {
       if (fetchingRef.current) return;
       if (booking === undefined || !booking) return;
       if (booking.scanned && !force) return;
+      if (!booking.ticketId) return;
 
       fetchingRef.current = true;
       try {
-        const result = await generateQrToken({ bookingId });
+        const result = await generateTokens(bookingId, booking.ticketId);
         const nowTime = Date.now();
         const tokens = Array.isArray(result.tokens)
           ? result.tokens
@@ -118,7 +120,7 @@ export default function BookingConfirmationPage() {
         fetchingRef.current = false;
       }
     },
-    [booking, bookingId, generateQrToken]
+    [booking, bookingId, generateTokens]
   );
 
   useEffect(() => {

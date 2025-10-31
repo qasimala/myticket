@@ -22,7 +22,7 @@ org.gradle.jvmargs=-Xmx1536m
 android.useAndroidX=true
 
 # QR Token Secret
-# IMPORTANT: Set your actual secret key here (same as server's QR_SECRET environment variable)
-# This file should NOT be committed if you add the secret. Use gradle.properties.template as reference.
-# Alternatively, set the QR_SECRET environment variable before building.
-QR_SECRET=myl0ngs3cretc0de45868765867
+# IMPORTANT: Replace this with your actual secret key (same as server's QR_SECRET)
+# This should be a long, random string (64+ characters recommended)
+QR_SECRET=your-secret-key-here
+

@@ -11,6 +11,8 @@ import ScanResult, {
   type ScanState,
 } from "../../components/ScanResult";
 
+type ScanMode = "validate" | "entry";
+
 const toBookingSummary = (data: Record<string, unknown>): BookingSummary => ({
   id: String(data.id ?? ""),
   customerName:
@@ -30,11 +32,13 @@ const toBookingSummary = (data: Record<string, unknown>): BookingSummary => ({
 
 export default function AdminScanPage() {
   const currentUser = useQuery(api.users.current);
-  const scanToken = useAction(api.bookings.scanQrToken);
+  const validateTicket = useAction(api.bookings.validateTicket);
+  const recordEntry = useAction(api.bookings.recordEntry);
 
   const [inputValue, setInputValue] = useState("");
   const [scanState, setScanState] = useState<ScanState>({ status: "idle" });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scanMode, setScanMode] = useState<ScanMode>("validate");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -83,28 +87,63 @@ export default function AdminScanPage() {
     setScanState({ status: "scanning" });
 
     try {
-      const result = await scanToken({ token: value });
-      if (result.status === "ok") {
-        const booking = toBookingSummary(
-          result.booking as Record<string, unknown>
-        );
-        setScanState({
-          status: "success",
-          booking,
-        });
-      } else if (result.status === "already_used") {
-        const booking = toBookingSummary(
-          result.booking as Record<string, unknown>
-        );
-        setScanState({
-          status: "already_used",
-          booking,
-        });
+      if (scanMode === "validate") {
+        const result = await validateTicket({ token: value });
+        if (result.status === "ok") {
+          const booking = toBookingSummary(
+            result.booking as Record<string, unknown>
+          );
+          setScanState({
+            status: "validated",
+            booking,
+          });
+        } else if (result.status === "already_validated") {
+          const booking = toBookingSummary(
+            result.booking as Record<string, unknown>
+          );
+          setScanState({
+            status: "already_validated",
+            booking,
+          });
+        } else if (result.status === "already_entered") {
+          const booking = toBookingSummary(
+            result.booking as Record<string, unknown>
+          );
+          setScanState({
+            status: "already_entered",
+            booking,
+          });
+        } else {
+          setScanState({
+            status: "error",
+            message: result.reason ?? "Invalid or expired QR code",
+          });
+        }
       } else {
-        setScanState({
-          status: "error",
-          message: result.reason ?? "Invalid or expired QR code",
-        });
+        // Entry mode
+        const result = await recordEntry({ token: value });
+        if (result.status === "ok") {
+          const booking = toBookingSummary(
+            result.booking as Record<string, unknown>
+          );
+          setScanState({
+            status: "success",
+            booking,
+          });
+        } else if (result.status === "already_entered") {
+          const booking = toBookingSummary(
+            result.booking as Record<string, unknown>
+          );
+          setScanState({
+            status: "already_entered",
+            booking,
+          });
+        } else {
+          setScanState({
+            status: "error",
+            message: result.reason ?? "Invalid or expired QR code",
+          });
+        }
       }
     } catch (error: unknown) {
       setScanState({
@@ -135,7 +174,7 @@ export default function AdminScanPage() {
         </p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-500/20 px-4 py-2 text-xs font-semibold text-indigo-300">
           <span className="h-2 w-2 rounded-full bg-indigo-400"></span>
-          Live verification with duplicate protection
+          Two-step verification: Validation → Entry
         </div>
       </div>
 
@@ -143,6 +182,39 @@ export default function AdminScanPage() {
         onSubmit={handleSubmit}
         className="rounded-xl border border-white/10 bg-slate-900/80 p-6 shadow-lg"
       >
+        {/* Mode Selection */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-slate-300 mb-3">
+            Scan Mode
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setScanMode("validate")}
+              className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
+                scanMode === "validate"
+                  ? "bg-orange-600 text-white border-2 border-orange-500"
+                  : "bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-slate-600"
+              }`}
+            >
+              <span className="block">Step 1: Validate</span>
+              <span className="text-xs opacity-80">Check ticket authenticity</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanMode("entry")}
+              className={`flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${
+                scanMode === "entry"
+                  ? "bg-indigo-600 text-white border-2 border-indigo-500"
+                  : "bg-slate-800 text-slate-300 border-2 border-slate-700 hover:border-slate-600"
+              }`}
+            >
+              <span className="block">Step 2: Entry</span>
+              <span className="text-xs opacity-80">Grant access & disable ticket</span>
+            </button>
+          </div>
+        </div>
+
         <label
           htmlFor="qr-token"
           className="block text-sm font-semibold text-slate-300"
@@ -164,9 +236,17 @@ export default function AdminScanPage() {
           <button
             type="submit"
             disabled={isProcessing || !inputValue.trim()}
-            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              scanMode === "validate" 
+                ? "bg-orange-600 hover:bg-orange-700" 
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
           >
-            {isProcessing ? "Processing..." : "Validate Ticket"}
+            {isProcessing 
+              ? "Processing..." 
+              : scanMode === "validate" 
+                ? "Validate Ticket" 
+                : "Record Entry"}
           </button>
           <button
             type="button"

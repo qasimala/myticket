@@ -403,6 +403,17 @@ body {
   z-index: 1;
 }
 
+.qr-progress.validated::before {
+  background: rgba(249, 115, 22, 0.16);
+}
+
+.qr-progress.validated::after {
+  background: conic-gradient(
+    #f97316 calc(var(--progress, 1) * 360deg),
+    transparent 0deg
+  );
+}
+
 .qr-progress > * {
   position: relative;
   z-index: 2;

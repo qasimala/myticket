@@ -89,8 +89,10 @@ export default defineSchema({
     customerId: v.optional(v.string()), // Customer ID number
     customerPhone: v.optional(v.string()), // Customer phone number
     customerEmail: v.string(),
-    scanned: v.optional(v.boolean()),
-    scannedAt: v.optional(v.number()),
+    validated: v.optional(v.boolean()), // Step 1: Ticket validated
+    validatedAt: v.optional(v.number()), // When ticket was validated
+    scanned: v.optional(v.boolean()), // Step 2: Entry recorded (final step)
+    scannedAt: v.optional(v.number()), // When entry was recorded
   })
     .index("by_user", ["userId"])
     .index("by_event", ["eventId"])

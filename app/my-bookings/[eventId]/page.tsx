@@ -414,6 +414,7 @@ export default function EventTicketsPage() {
           const qrData = qrDataMap.get(booking._id);
           const qrError = qrErrors.get(booking._id);
           const isScanned = Boolean(booking.scanned);
+          const isValidated = Boolean(booking.validated && !booking.scanned);
 
           const refreshSeconds =
             qrData && !isScanned ? qrData.windowMs / 1000 : null;
@@ -477,9 +478,14 @@ export default function EventTicketsPage() {
                     >
                       {booking.status}
                     </span>
+                    {isValidated && (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-200">
+                        Validated
+                      </span>
+                    )}
                     {isScanned && (
                       <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-200">
-                        Used
+                        Entered
                       </span>
                     )}
                   </div>
@@ -531,16 +537,25 @@ export default function EventTicketsPage() {
                   </div>
                 ) : (
                   <div className="relative inline-flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/50 p-6">
+                    {isValidated && (
+                      <div className="mb-3 rounded-lg bg-orange-500/10 border border-orange-500/30 px-4 py-2">
+                        <p className="text-sm font-semibold text-orange-200 text-center">
+                          ✓ Ticket Validated - Ready for Entry
+                        </p>
+                      </div>
+                    )}
                     <div
                       ref={handleProgressRef}
-                      className="qr-progress relative inline-flex items-center justify-center rounded-2xl p-3 transition-all duration-200"
+                      className={`qr-progress ${isValidated ? 'validated' : ''} relative inline-flex items-center justify-center rounded-2xl p-3 transition-all duration-200`}
                     >
                       <div className="rounded-xl bg-white p-3 shadow-inner">
                         <QRCode value={qrData.value} size={192} />
                       </div>
                     </div>
                     <p className="mt-4 text-center text-sm text-slate-400">
-                      Present this QR code at the entrance
+                      {isValidated 
+                        ? "Present this code for entry"
+                        : "Present this QR code at the entrance"}
                     </p>
                     {remainingSecondsDisplay !== null &&
                       refreshSeconds !== null && (

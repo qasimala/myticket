@@ -40,6 +40,7 @@ export default function BookingConfirmationPage() {
   const progressAnimationRef = useRef<number | null>(null);
 
   const isScanned = Boolean(booking?.scanned);
+  const isValidated = Boolean(booking?.validated && !booking?.scanned);
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -391,6 +392,11 @@ export default function BookingConfirmationPage() {
                 Payment: {booking.paymentStatus.toUpperCase()}
               </span>
             )}
+            {isValidated && (
+              <span className="px-4 py-2 rounded-full text-sm font-semibold bg-orange-500/20 text-orange-200 border border-orange-500/30">
+                VALIDATED
+              </span>
+            )}
             <span
               className={`px-4 py-2 rounded-full text-sm font-semibold ${
                 isScanned
@@ -398,7 +404,7 @@ export default function BookingConfirmationPage() {
                   : "bg-sky-500/20 text-sky-200 border border-sky-500/30"
               }`}
             >
-              {isScanned ? "Used" : "Active"}
+              {isScanned ? "ENTERED" : "ACTIVE"}
             </span>
           </div>
         </div>
@@ -479,16 +485,25 @@ export default function BookingConfirmationPage() {
                   </div>
                 ) : (
                   <div className="relative inline-flex flex-col items-center">
+                    {isValidated && (
+                      <div className="mb-4 rounded-lg bg-orange-500/10 border border-orange-500/30 px-6 py-3">
+                        <p className="text-base font-semibold text-orange-200 text-center">
+                          ✓ Ticket Validated - Ready for Entry
+                        </p>
+                      </div>
+                    )}
                     <div
                       ref={progressRef}
-                      className="qr-progress relative inline-flex items-center justify-center rounded-3xl p-4 transition-all duration-200"
+                      className={`qr-progress ${isValidated ? 'validated' : ''} relative inline-flex items-center justify-center rounded-3xl p-4 transition-all duration-200`}
                     >
                       <div className="rounded-2xl bg-white p-4 shadow-inner">
                         <QRCode value={qrData.value} size={220} />
                       </div>
                     </div>
                     <p className="mt-6 text-center text-sm font-medium text-slate-300 max-w-sm">
-                      Present this QR code at the entrance
+                      {isValidated 
+                        ? "Present this code for entry"
+                        : "Present this QR code at the entrance"}
                     </p>
                     {remainingSecondsDisplay !== null &&
                       refreshSeconds !== null && (

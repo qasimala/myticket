@@ -187,6 +187,17 @@ type ScanResult =
   | { status: "already_used"; booking: Record<string, unknown> }
   | { status: "invalid"; reason: string };
 
+type ValidateResult =
+  | { status: "ok"; booking: Record<string, unknown> }
+  | { status: "already_validated"; booking: Record<string, unknown> }
+  | { status: "already_entered"; booking: Record<string, unknown> }
+  | { status: "invalid"; reason: string };
+
+type EntryResult =
+  | { status: "ok"; booking: Record<string, unknown> }
+  | { status: "already_entered"; booking: Record<string, unknown> }
+  | { status: "invalid"; reason: string };
+
 export const scanQrToken = action({
   args: {
     token: v.string(),
@@ -303,6 +314,264 @@ export const scanQrToken = action({
       });
       bookingSummary.scannedAt = Date.now();
     }
+
+    return {
+      status: "ok",
+      booking: bookingSummary,
+    };
+  },
+});
+
+// New action to validate a ticket (Step 1)
+export const validateTicket = action({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args): Promise<ValidateResult> => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Must be signed in");
+
+    let parsed: {
+      bookingId?: string;
+      ticketId?: string;
+      ts?: number | string;
+      sig?: string;
+    };
+
+    try {
+      parsed = JSON.parse(args.token);
+    } catch {
+      return { status: "invalid", reason: "Malformed QR code" };
+    }
+
+    const bookingIdRaw = parsed.bookingId;
+    const ticketId = parsed.ticketId;
+    const tsRaw = parsed.ts;
+    const signature = parsed.sig;
+
+    const slot =
+      typeof tsRaw === "number"
+        ? tsRaw
+        : typeof tsRaw === "string"
+          ? Number(tsRaw)
+          : NaN;
+
+    if (
+      typeof bookingIdRaw !== "string" ||
+      typeof ticketId !== "string" ||
+      typeof signature !== "string" ||
+      !Number.isInteger(slot)
+    ) {
+      return { status: "invalid", reason: "Invalid QR payload" };
+    }
+
+    const bookingId = bookingIdRaw as Id<"bookings">;
+
+    const result = await ctx.runQuery(internal.bookings.getBookingForQr, {
+      bookingId,
+    });
+    if (!result) {
+      return { status: "invalid", reason: "Booking not found" };
+    }
+
+    const { booking, event, ticket } = result;
+
+    const currentUser = await ctx.runQuery(api.users.current, {});
+    const isEventOwner =
+      currentUser && event && event.createdBy === currentUser._id;
+    const isPrivileged =
+      currentUser &&
+      (currentUser.role === "admin" || currentUser.role === "superadmin");
+
+    if (!isEventOwner && !isPrivileged) {
+      return {
+        status: "invalid",
+        reason: "Not authorized to validate this ticket",
+      };
+    }
+
+    if (booking.ticketId !== ticketId) {
+      return { status: "invalid", reason: "Ticket mismatch" };
+    }
+
+    const secret = process.env.QR_SECRET;
+    if (!secret) {
+      throw new Error("QR_SECRET environment variable not configured");
+    }
+
+    const key = await importHmacKey(secret);
+    const expectedSignature = await computeSignature(key, booking, slot);
+
+    if (expectedSignature !== signature) {
+      return { status: "invalid", reason: "Signature mismatch" };
+    }
+
+    const nowSlot = Math.floor(Date.now() / QR_WINDOW_MS);
+    if (slot < nowSlot - 1) {
+      return { status: "invalid", reason: "Ticket expired" };
+    }
+    if (slot > nowSlot + 1) {
+      return { status: "invalid", reason: "Ticket not yet valid" };
+    }
+
+    const bookingSummary: Record<string, unknown> = {
+      id: booking._id,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      quantity: booking.quantity,
+      eventName: event?.name ?? null,
+      ticketName: ticket?.name ?? null,
+      validatedAt: booking.validatedAt ?? null,
+      scannedAt: booking.scannedAt ?? null,
+    };
+
+    // Check if already entered (can't validate after entry)
+    if (booking.scanned) {
+      return {
+        status: "already_entered",
+        booking: bookingSummary,
+      };
+    }
+
+    // Check if already validated
+    if (booking.validated) {
+      return {
+        status: "already_validated",
+        booking: bookingSummary,
+      };
+    }
+
+    // Mark as validated
+    await ctx.runMutation(api.bookings.setValidatedStatus, {
+      bookingId: booking._id,
+      validated: true,
+    });
+    bookingSummary.validatedAt = Date.now();
+
+    return {
+      status: "ok",
+      booking: bookingSummary,
+    };
+  },
+});
+
+// New action to record entry (Step 2)
+export const recordEntry = action({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args): Promise<EntryResult> => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Must be signed in");
+
+    let parsed: {
+      bookingId?: string;
+      ticketId?: string;
+      ts?: number | string;
+      sig?: string;
+    };
+
+    try {
+      parsed = JSON.parse(args.token);
+    } catch {
+      return { status: "invalid", reason: "Malformed QR code" };
+    }
+
+    const bookingIdRaw = parsed.bookingId;
+    const ticketId = parsed.ticketId;
+    const tsRaw = parsed.ts;
+    const signature = parsed.sig;
+
+    const slot =
+      typeof tsRaw === "number"
+        ? tsRaw
+        : typeof tsRaw === "string"
+          ? Number(tsRaw)
+          : NaN;
+
+    if (
+      typeof bookingIdRaw !== "string" ||
+      typeof ticketId !== "string" ||
+      typeof signature !== "string" ||
+      !Number.isInteger(slot)
+    ) {
+      return { status: "invalid", reason: "Invalid QR payload" };
+    }
+
+    const bookingId = bookingIdRaw as Id<"bookings">;
+
+    const result = await ctx.runQuery(internal.bookings.getBookingForQr, {
+      bookingId,
+    });
+    if (!result) {
+      return { status: "invalid", reason: "Booking not found" };
+    }
+
+    const { booking, event, ticket } = result;
+
+    const currentUser = await ctx.runQuery(api.users.current, {});
+    const isEventOwner =
+      currentUser && event && event.createdBy === currentUser._id;
+    const isPrivileged =
+      currentUser &&
+      (currentUser.role === "admin" || currentUser.role === "superadmin");
+
+    if (!isEventOwner && !isPrivileged) {
+      return {
+        status: "invalid",
+        reason: "Not authorized to record entry for this ticket",
+      };
+    }
+
+    if (booking.ticketId !== ticketId) {
+      return { status: "invalid", reason: "Ticket mismatch" };
+    }
+
+    const secret = process.env.QR_SECRET;
+    if (!secret) {
+      throw new Error("QR_SECRET environment variable not configured");
+    }
+
+    const key = await importHmacKey(secret);
+    const expectedSignature = await computeSignature(key, booking, slot);
+
+    if (expectedSignature !== signature) {
+      return { status: "invalid", reason: "Signature mismatch" };
+    }
+
+    const nowSlot = Math.floor(Date.now() / QR_WINDOW_MS);
+    if (slot < nowSlot - 1) {
+      return { status: "invalid", reason: "Ticket expired" };
+    }
+    if (slot > nowSlot + 1) {
+      return { status: "invalid", reason: "Ticket not yet valid" };
+    }
+
+    const bookingSummary: Record<string, unknown> = {
+      id: booking._id,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      quantity: booking.quantity,
+      eventName: event?.name ?? null,
+      ticketName: ticket?.name ?? null,
+      validatedAt: booking.validatedAt ?? null,
+      scannedAt: booking.scannedAt ?? null,
+    };
+
+    // Check if already entered
+    if (booking.scanned) {
+      return {
+        status: "already_entered",
+        booking: bookingSummary,
+      };
+    }
+
+    // Mark as entered (scanned)
+    await ctx.runMutation(api.bookings.setScannedStatus, {
+      bookingId: booking._id,
+      scanned: true,
+    });
+    bookingSummary.scannedAt = Date.now();
 
     return {
       status: "ok",
@@ -549,6 +818,35 @@ export const setScannedStatus = mutation({
     await ctx.db.patch(args.bookingId, {
       scanned: args.scanned,
       scannedAt: args.scanned ? Date.now() : undefined,
+    });
+  },
+});
+
+export const setValidatedStatus = mutation({
+  args: {
+    bookingId: v.id("bookings"),
+    validated: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Must be signed in");
+
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+
+    const event = await ctx.db.get(booking.eventId);
+    if (!event) throw new Error("Event not found");
+
+    const isEventOwner = event.createdBy === user._id;
+    const isPrivileged = user.role === "admin" || user.role === "superadmin";
+
+    if (!isEventOwner && !isPrivileged) {
+      throw new Error("Not authorized to update validated status");
+    }
+
+    await ctx.db.patch(args.bookingId, {
+      validated: args.validated,
+      validatedAt: args.validated ? Date.now() : undefined,
     });
   },
 });

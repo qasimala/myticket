@@ -1,0 +1,134 @@
+═══════════════════════════════════════════════════════════════
+  MYTICKET - QUICK START GUIDE
+═══════════════════════════════════════════════════════════════
+
+📱 SYNC TO ANDROID
+───────────────────────────────────────────────────────────────
+npm run mobile:sync
+
+  → Builds web app + syncs to Android
+  → Updates Capacitor with latest changes
+  → Use after making code changes
+
+
+🌐 START FRONTEND (Development)
+───────────────────────────────────────────────────────────────
+npm run dev
+
+  → Starts Next.js dev server
+  → Usually runs on http://localhost:3000
+  → Hot reload enabled
+
+
+☁️ START CONVEX (Development)
+───────────────────────────────────────────────────────────────
+npm run convex:dev
+
+  → Starts Convex back-end development server
+  → Watches for schema/function changes
+  → Syncs with Convex cloud
+
+
+📦 BUILD FRONTEND (Production)
+───────────────────────────────────────────────────────────────
+npm run build
+
+  → Builds Next.js for production
+  → Creates optimized bundle in .next folder
+
+
+🤖 BUILD ANDROID APK
+───────────────────────────────────────────────────────────────
+npm run mobile:build-apk
+
+  → Full build: web app + sync + APK
+  → APK location: android/app/build/outputs/apk/debug/app-debug.apk
+
+npm run mobile:build-apk:fast
+
+  → Quick build: Just builds APK (skip web build/sync)
+  → Use when you only changed native code
+
+
+📂 OPEN ANDROID STUDIO
+───────────────────────────────────────────────────────────────
+npm run mobile:open
+
+  → Opens project in Android Studio
+  → Use for native debugging/development
+
+
+🚀 START PRODUCTION SERVER
+───────────────────────────────────────────────────────────────
+npm start
+
+  → Starts Next.js production server
+  → Requires: npm run build first
+
+
+☁️ DEPLOY CONVEX (Production)
+───────────────────────────────────────────────────────────────
+npm run convex:deploy
+
+  → Deploys Convex functions to production
+  → Updates schema and functions in cloud
+
+
+═══════════════════════════════════════════════════════════════
+  COMMON WORKFLOWS
+═══════════════════════════════════════════════════════════════
+
+🔄 DAILY DEVELOPMENT
+───────────────────────────────────────────────────────────────
+1. npm run convex:dev     (Terminal 1 - Backend)
+2. npm run dev             (Terminal 2 - Frontend)
+3. Make changes, test in browser
+
+📱 TEST ON ANDROID
+───────────────────────────────────────────────────────────────
+1. npm run build:mobile    (Build web app)
+2. npm run mobile:sync     (Sync to Android)
+3. npm run mobile:open     (Open in Android Studio)
+4. Run/Debug in Android Studio or device
+
+🚀 DEPLOY TO PRODUCTION
+───────────────────────────────────────────────────────────────
+1. npm run build           (Build frontend)
+2. npm run convex:deploy   (Deploy backend)
+3. Deploy frontend (Vercel/other hosting)
+
+═══════════════════════════════════════════════════════════════
+  ENVIRONMENT SETUP
+═══════════════════════════════════════════════════════════════
+
+⚙️ REQUIRED ENVIRONMENT VARIABLES
+───────────────────────────────────────────────────────────────
+• QR_SECRET                 - Secret key for QR code signing
+• CONVEX_DEPLOY_KEY         - Convex deployment key
+• CAP_SERVER_URL            - (Optional) Capacitor server URL
+
+📝 ANDROID BUILD CONFIG
+───────────────────────────────────────────────────────────────
+• Set QR_SECRET in android/gradle.properties
+• Same value as server's QR_SECRET env var
+
+═══════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+❌ "JAVA_HOME not set"
+   → Install Java JDK 17, set JAVA_HOME environment variable
+   → See JAVA_SETUP.md for details
+
+❌ "Module not found"
+   → npm install (install dependencies)
+
+❌ "Capacitor sync failed"
+   → Make sure npm run build:mobile ran successfully first
+
+❌ "Convex connection failed"
+   → Check npm run convex:dev is running
+   → Verify CONVEX_DEPLOY_KEY is set
+
+═══════════════════════════════════════════════════════════════
+

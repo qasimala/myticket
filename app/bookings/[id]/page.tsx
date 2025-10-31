@@ -38,6 +38,7 @@ export default function BookingConfirmationPage() {
   const fetchingRef = useRef(false);
   const progressRef = useRef<HTMLDivElement | null>(null);
   const progressAnimationRef = useRef<number | null>(null);
+  const previousBookingIdRef = useRef<Id<"bookings"> | null>(null);
 
   const isScanned = Boolean(booking?.scanned);
   const isValidated = Boolean(booking?.validated && !booking?.scanned);
@@ -124,32 +125,42 @@ export default function BookingConfirmationPage() {
     [booking, bookingId, generateTokens]
   );
 
+  // Reset QR data when booking ID changes
   useEffect(() => {
     if (booking === undefined) {
       return;
     }
 
-    setQrQueue([]);
-    setQrData(null);
-
-    if (booking && !booking.scanned) {
-      requestTokens();
-    } else {
+    const currentBookingId = booking?._id;
+    
+    // Only reset QR data when booking ID actually changes
+    if (currentBookingId && currentBookingId !== previousBookingIdRef.current) {
+      previousBookingIdRef.current = currentBookingId;
+      setQrQueue([]);
+      setQrData(null);
       setQrError(null);
     }
-  }, [booking, requestTokens]);
 
-  useEffect(() => {
-    if (!qrData || isScanned) {
+    if (!currentBookingId || !booking) {
       return;
     }
 
+    // Reset if booking is scanned
+    if (booking.scanned) {
+      setQrQueue([]);
+      setQrData(null);
+      setQrError(null);
+    }
+  }, [booking?._id, booking?.scanned]);
+
+  // Update now timestamp independently
+  useEffect(() => {
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [qrData, isScanned]);
+  }, []);
 
   useEffect(() => {
     const node = progressRef.current;
@@ -235,8 +246,13 @@ export default function BookingConfirmationPage() {
     }
   }, [qrQueue, now, qrData]);
 
+  // Request tokens when needed
   useEffect(() => {
     if (booking === undefined || !booking || booking.scanned) {
+      return;
+    }
+
+    if (!booking.ticketId) {
       return;
     }
 
@@ -249,7 +265,7 @@ export default function BookingConfirmationPage() {
     if (qrQueue.length <= 1) {
       requestTokens();
     }
-  }, [booking, qrQueue, qrError, requestTokens]);
+  }, [booking?._id, booking?.scanned, booking?.ticketId, qrQueue.length, qrError, requestTokens]);
 
   if (booking === undefined) {
     return (
@@ -479,7 +495,7 @@ export default function BookingConfirmationPage() {
                       Try Again
                     </button>
                   </div>
-                ) : !qrData ? (
+                ) : !qrData || !qrData.value ? (
                   <div className="flex h-64 w-full items-center justify-center">
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400/30 border-t-indigo-400"></div>
                   </div>
@@ -514,7 +530,7 @@ export default function BookingConfirmationPage() {
                       )}
 
                     {/* Wallet Button */}
-                    {qrData && !isScanned && (
+                    {qrData && qrData.value && !isScanned && (
                       <div className="mt-8 w-full">
                         <WalletButtons
                           bookingId={booking._id}

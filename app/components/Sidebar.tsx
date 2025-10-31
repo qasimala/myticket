@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Sparkles,
   User,
+  X,
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import AuthDialog from "./AuthDialog";
@@ -114,8 +115,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           active
             ? "bg-gradient-to-r from-white/10 to-white/5 text-white shadow-[0_16px_38px_rgba(79,70,229,0.35)]"
             : "text-slate-200 hover:bg-white/8"
-        } animate-fade-up`}
-        style={{ animationDelay: `${0.08 * index}s` }}
+        }`}
       >
         <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md transition group-hover:border-white/20">
           <span className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
@@ -142,42 +142,51 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-[55] bg-slate-950/60 backdrop-blur-sm lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-72 transform border-r border-white/10 bg-white/[0.04] backdrop-blur-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-[60] h-screen w-72 transform border-r border-white/10 bg-white/[0.04] backdrop-blur-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-70" />
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 px-6 pb-6 pt-8">
-            <Link
-              href="/"
-              className="group flex items-center gap-3"
-              onClick={onClose}
-            >
-              <div className="relative flex h-11 w-11 items-center justify-center">
-                <img
-                  src="/myticket_logo.png"
-                  alt="MyTicket"
-                  width={44}
-                  height={44}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">
-                  MyTicket
-                </p>
-                <p className="text-xs text-slate-400">
-                  Curating premium experiences
-                </p>
-              </div>
-            </Link>
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                href="/"
+                className="group flex items-center gap-3"
+                onClick={onClose}
+              >
+                <div className="relative flex h-11 w-11 items-center justify-center">
+                  <img
+                    src="/myticket_logo.png"
+                    alt="MyTicket"
+                    width={44}
+                    height={44}
+                    className="object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-300">
+                    MyTicket
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Curating premium experiences
+                  </p>
+                </div>
+              </Link>
+              <button
+                onClick={onClose}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 hover:text-slate-100 lg:hidden"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}

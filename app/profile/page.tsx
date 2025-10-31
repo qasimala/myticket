@@ -56,9 +56,9 @@ export default function ProfilePage() {
   if (currentUser === undefined) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex min-h-[400px] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400 mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-400"></div>
             <p className="mt-4 text-slate-400">Loading...</p>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function ProfilePage() {
   if (!currentUser) {
     return (
       <MainLayout>
-        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+        <div className="animate-fade-up rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
             🔒
           </div>
@@ -87,16 +87,16 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
+      <div className="space-y-8">
+        <div>
           <h1 className="text-3xl font-bold text-slate-50">Profile Settings</h1>
-          <p className="text-slate-400 mt-1">
+          <p className="mt-1 text-slate-400">
             Update your contact information for faster checkout
           </p>
         </div>
 
         {!isProfileComplete && (
-          <div className="mb-6 bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4">
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-xl animate-fade-up">
             <p className="text-sm text-yellow-200">
               ⚠️ Your profile is incomplete. Please fill in all fields to speed
               up checkout.
@@ -104,16 +104,16 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-lg backdrop-blur-xl transition hover:border-white/20 hover:shadow-xl animate-fade-up">
+          <div className="mb-6 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500">
               <User className="h-6 w-6 text-white" strokeWidth={1.8} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-slate-50">
                 Personal Information
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-slate-400">
                 This information will be prefilled at checkout
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function ProfilePage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">
                 Full Name *
               </label>
               <input
@@ -130,14 +130,14 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 placeholder="John Doe"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">
                 ID Number *
               </label>
               <input
@@ -146,14 +146,14 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, id: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 placeholder="1234567890"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">
                 Phone Number *
               </label>
               <input
@@ -162,38 +162,38 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 placeholder="+1234567890"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">
                 Email Address
               </label>
               <input
                 type="email"
                 value={formData.email}
                 disabled
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                className="w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-slate-400">
                 Email cannot be changed. Contact support if you need to update
                 it.
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 text-sm">{error}</p>
+              <div className="rounded-xl border border-red-500/30 bg-red-500/20 p-4 backdrop-blur-xl animate-fade-up">
+                <p className="text-sm text-red-200">{error}</p>
               </div>
             )}
 
             {saveSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <p className="text-green-800 text-sm">
+              <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/20 p-4 backdrop-blur-xl animate-fade-up">
+                <CheckCircle2 className="h-5 w-5 text-green-200" />
+                <p className="text-sm text-green-200">
                   Profile updated successfully!
                 </p>
               </div>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 font-semibold text-white shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
                 <>

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import Header from "./Header";
 import Sidebar from "./Sidebar";
+import BottomNavigation from "./BottomNavigation";
 import { api } from "../../convex/_generated/api";
 
 export default function MainLayout({
@@ -42,11 +42,9 @@ export default function MainLayout({
 
       <div className="relative z-10 flex min-h-screen lg:pl-72">
         <div className="flex w-full flex-col">
-          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-
           <main
             className={`flex-1 overflow-x-hidden ${
-              hasItems ? "pb-28 lg:pb-32" : "pb-14"
+              hasItems ? "pb-28 lg:pb-32" : "pb-20 lg:pb-14"
             }`}
           >
             <div className="relative mx-auto w-full px-4 pb-12 pt-10 sm:px-6 lg:px-8 xl:px-12">
@@ -57,7 +55,7 @@ export default function MainLayout({
       </div>
 
       {hasItems && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-5 lg:pl-[calc(18rem+1.25rem)]">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-20 lg:pb-5 lg:pl-[calc(18rem+1.25rem)]">
           <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_28px_70px_rgba(15,23,42,0.55)] backdrop-blur-xl animate-fade-up">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-70" />
             <div className="px-5 py-5 lg:px-8 lg:py-6">
@@ -94,6 +92,8 @@ export default function MainLayout({
           </div>
         </div>
       )}
+
+      <BottomNavigation onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
     </div>
   );
 }

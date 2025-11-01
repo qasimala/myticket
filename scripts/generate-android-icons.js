@@ -36,6 +36,9 @@ const iconSizes = {
 // Adaptive icon foreground size
 const adaptiveForegroundSize = 1024;
 
+// Safe zone for adaptive icons - Android masks the outer edges, so we scale to 66%
+const safeZoneScale = 0.66;
+
 async function generateIcons() {
   try {
     // Check if logo exists
@@ -46,6 +49,7 @@ async function generateIcons() {
 
     console.log('📱 Generating Android app icons...');
     console.log(`   Source: ${logoPath}`);
+    console.log(`   Using safe zone scale: ${(safeZoneScale * 100).toFixed(0)}% to prevent clipping`);
 
     // Generate standard icons for each density
     for (const [folder, size] of Object.entries(iconSizes)) {
@@ -56,38 +60,70 @@ async function generateIcons() {
         fs.mkdirSync(folderPath, { recursive: true });
       }
 
-      // Generate square icon
+      // Calculate logo size within safe zone (66% of icon size)
+      const logoSize = Math.round(size * safeZoneScale);
+
+      // Generate square icon - scale logo to safe zone and center on transparent background
       await sharp(logoPath)
-        .resize(size, size, {
+        .resize(logoSize, logoSize, {
           fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .extend({
+          top: Math.round((size - logoSize) / 2),
+          bottom: Math.round((size - logoSize) / 2),
+          left: Math.round((size - logoSize) / 2),
+          right: Math.round((size - logoSize) / 2),
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .toFile(path.join(folderPath, 'ic_launcher.png'));
 
       // Generate round icon (same as square for now)
       await sharp(logoPath)
-        .resize(size, size, {
+        .resize(logoSize, logoSize, {
           fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .extend({
+          top: Math.round((size - logoSize) / 2),
+          bottom: Math.round((size - logoSize) / 2),
+          left: Math.round((size - logoSize) / 2),
+          right: Math.round((size - logoSize) / 2),
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .toFile(path.join(folderPath, 'ic_launcher_round.png'));
 
       // Generate foreground for adaptive icon
       await sharp(logoPath)
-        .resize(size, size, {
+        .resize(logoSize, logoSize, {
           fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .extend({
+          top: Math.round((size - logoSize) / 2),
+          bottom: Math.round((size - logoSize) / 2),
+          left: Math.round((size - logoSize) / 2),
+          right: Math.round((size - logoSize) / 2),
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .toFile(path.join(folderPath, 'ic_launcher_foreground.png'));
 
-      console.log(`   ✓ Generated ${size}x${size} icons for ${folder}`);
+      console.log(`   ✓ Generated ${size}x${size} icons for ${folder} (logo: ${logoSize}x${logoSize})`);
     }
 
     // Generate high-res foreground for adaptive icon (1024x1024)
+    const foregroundLogoSize = Math.round(adaptiveForegroundSize * safeZoneScale);
     const foregroundPath = path.join(androidResPath, 'mipmap-xxxhdpi', 'ic_launcher_foreground.png');
     await sharp(logoPath)
-      .resize(adaptiveForegroundSize, adaptiveForegroundSize, {
+      .resize(foregroundLogoSize, foregroundLogoSize, {
         fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .extend({
+        top: Math.round((adaptiveForegroundSize - foregroundLogoSize) / 2),
+        bottom: Math.round((adaptiveForegroundSize - foregroundLogoSize) / 2),
+        left: Math.round((adaptiveForegroundSize - foregroundLogoSize) / 2),
+        right: Math.round((adaptiveForegroundSize - foregroundLogoSize) / 2),
         background: { r: 0, g: 0, b: 0, alpha: 0 }
       })
       .toFile(foregroundPath);

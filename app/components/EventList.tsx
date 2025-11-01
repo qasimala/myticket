@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import EventCard from "./EventCard";
+import { useCachedQuery } from "../lib/useCachedQuery";
+import { useOffline } from "../lib/useOffline";
 
 type ViewMode = "all" | "mine";
 type Timeframe = "upcoming" | "all" | "past";
@@ -27,9 +29,19 @@ const timeframeLabels: Record<Timeframe, string> = {
 };
 
 export default function EventList() {
-  const currentUser = useQuery(api.users.current);
-  const allEvents = useQuery(api.events.list);
-  const myEvents = useQuery(api.events.myEvents);
+  const isOffline = useOffline();
+  const currentUser = useCachedQuery(api.users.current, undefined, {
+    cacheKey: "current_user",
+    cacheTTL: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  const allEvents = useCachedQuery<any[]>(api.events.list, undefined, {
+    cacheKey: "all_events",
+    cacheTTL: 5 * 60 * 1000, // 5 minutes
+  });
+  const myEvents = useCachedQuery<any[]>(api.events.myEvents, undefined, {
+    cacheKey: "my_events",
+    cacheTTL: 5 * 60 * 1000, // 5 minutes
+  });
 
   const isAdmin =
     currentUser &&
@@ -50,7 +62,10 @@ export default function EventList() {
   const eventsLoading = sourceEvents === undefined;
 
   // Get all tickets to calculate price ranges
-  const allTickets = useQuery(api.tickets.list);
+  const allTickets = useCachedQuery<any[]>(api.tickets.list, undefined, {
+    cacheKey: "all_tickets",
+    cacheTTL: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Get unique cities and price ranges
   const { cities, priceRange } = useMemo(() => {
@@ -435,6 +450,16 @@ export default function EventList() {
               </div>
             ))}
           </div>
+        ) : isOffline && (!sourceEvents || sourceEvents.length === 0) ? (
+          <div className="rounded-3xl border border-orange-500/20 bg-orange-500/10 px-10 py-16 text-center text-orange-100 shadow-xl backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/20 text-3xl">
+              📡
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold">Offline Mode</h3>
+            <p className="mt-3 text-sm text-orange-100/80">
+              No cached events available. Please connect to the internet to view events.
+            </p>
+          </div>
         ) : events.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-white/15 bg-white/5 px-8 py-14 text-center text-slate-200">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-2xl">
@@ -453,17 +478,26 @@ export default function EventList() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
-            {events.map((event, index) => (
-              <div
-                key={event._id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <EventCard event={event} isAdmin={isAdmin ?? false} />
+          <>
+            {isOffline && (
+              <div className="mb-6 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3">
+                <p className="text-sm font-semibold text-orange-200 text-center">
+                  📡 Showing cached data - Information may be outdated
+                </p>
               </div>
-            ))}
-          </div>
+            )}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
+              {events.map((event, index) => (
+                <div
+                  key={event._id}
+                  className="animate-fade-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <EventCard event={event} isAdmin={isAdmin ?? false} />
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>

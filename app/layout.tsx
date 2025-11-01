@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ThemeProvider } from "./components/ThemeProvider";
+import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration";
+import BackgroundCache from "./components/BackgroundCache";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +19,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MyTicket - Event & Ticket Management",
   description: "Create and manage events with multiple ticket types",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MyTicket",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#483d8b",
 };
 
 export default function RootLayout({
@@ -29,8 +44,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ServiceWorkerRegistration />
         <ThemeProvider>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <ConvexClientProvider>
+            <BackgroundCache />
+            {children}
+          </ConvexClientProvider>
         </ThemeProvider>
       </body>
     </html>

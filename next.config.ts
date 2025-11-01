@@ -11,6 +11,25 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true, // Skip type checking during build (fix dependency issues later)
   },
+
+  // Service worker and PWA support
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

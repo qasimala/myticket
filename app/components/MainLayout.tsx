@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import Sidebar from "./Sidebar";
 import BottomNavigation from "./BottomNavigation";
+import OfflineIndicator from "./OfflineIndicator";
 import { api } from "../../convex/_generated/api";
 
 export default function MainLayout({
@@ -35,6 +36,7 @@ export default function MainLayout({
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100 transition-colors duration-300">
+      <OfflineIndicator />
       <div className="aurora-blob aurora-blob--indigo -top-56 -left-24" />
       <div className="aurora-blob aurora-blob--purple top-1/3 -right-48" />
       <div className="aurora-blob aurora-blob--teal top-[65%] -left-40" />

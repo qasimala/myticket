@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { LucideIcon } from "lucide-react";
+import { useCachedQuery } from "../lib/useCachedQuery";
 import {
   CalendarDays,
   ChevronDown,
@@ -87,14 +87,34 @@ const adminItems: NavItem[] = [
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const currentUser = useQuery(api.users.current);
-  const cartCount = useQuery(api.cart.getCartCount);
+  const currentUser = useCachedQuery<any>(
+    api.users.current,
+    {},
+    {
+      cacheKey: "current_user",
+      cacheTTL: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+  const cartCount = useCachedQuery<number>(
+    api.cart.getCartCount,
+    {},
+    {
+      cacheKey: "cart_count",
+      cacheTTL: 2 * 60 * 1000, // 2 minutes
+    }
+  );
   const { signOut } = useAuthActions();
 
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const isActive = (path: string) => pathname === path;
+  // Prevent hydration mismatch by only using pathname after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isActive = (path: string) => mounted && pathname === path;
   const isAdmin =
     currentUser &&
     (currentUser.role === "admin" || currentUser.role === "superadmin");

@@ -1,17 +1,29 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import MainLayout from "../components/MainLayout";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Calendar, MapPin, Ticket } from "lucide-react";
+import { useCachedQuery } from "../lib/useCachedQuery";
+import { useOffline } from "../lib/useOffline";
 
 export default function MyBookingsPage() {
   const router = useRouter();
-  const currentUser = useQuery(api.users.current);
-  const bookingsByEvent = useQuery(api.bookings.myBookingsByEvent);
+  const isOffline = useOffline();
+  const currentUser = useCachedQuery(api.users.current, undefined, {
+    cacheKey: "current_user",
+    cacheTTL: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  const bookingsByEvent = useCachedQuery<Array<{
+    event: any;
+    bookings: any[];
+  }>>(api.bookings.myBookingsByEvent, undefined, {
+    cacheKey: "my_bookings_by_event",
+    cacheTTL: 60 * 60 * 1000, // 1 hour
+  });
+
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
@@ -36,42 +48,93 @@ export default function MyBookingsPage() {
     });
   };
 
-  if (currentUser === undefined || bookingsByEvent === undefined) {
-    return (
-      <MainLayout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-slate-800 rounded w-1/4"></div>
-          <div className="h-32 bg-slate-800 rounded"></div>
-          <div className="h-32 bg-slate-800 rounded"></div>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (!currentUser) {
-    return (
-      <MainLayout>
-        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
-            🔒
+  // When offline, handle differently - don't wait for data that won't come
+  if (isOffline) {
+    // If we have no cached user data, show offline message
+    if (currentUser === undefined) {
+      return (
+        <MainLayout>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-50">My Bookings</h1>
+            <p className="text-slate-400 mt-1">
+              View events you&apos;ve booked tickets for
+            </p>
           </div>
-          <h3 className="mt-6 text-2xl font-semibold">Sign In Required</h3>
-          <p className="mt-3 text-sm text-red-100/80">
-            Please sign in to view your bookings
-          </p>
-        </div>
-      </MainLayout>
-    );
+          <div className="rounded-3xl border border-orange-500/20 bg-orange-500/10 px-10 py-16 text-center text-orange-100 shadow-xl backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-500/20 text-3xl">
+              📡
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold">Offline Mode</h3>
+            <p className="mt-3 text-sm text-orange-100/80">
+              No cached data available. Please connect to the internet to view your bookings.
+            </p>
+          </div>
+        </MainLayout>
+      );
+    }
+    
+    // If user is cached but null (not signed in), show sign in required
+    if (!currentUser) {
+      return (
+        <MainLayout>
+          <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+              🔒
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold">Sign In Required</h3>
+            <p className="mt-3 text-sm text-red-100/80">
+              Please sign in to view your bookings
+            </p>
+          </div>
+        </MainLayout>
+      );
+    }
+    
+    // If we have cached user, proceed even if bookingsByEvent is undefined
+    // We'll show empty state below
+  } else {
+    // When online, show loading while data is being fetched
+    if (currentUser === undefined || bookingsByEvent === undefined) {
+      return (
+        <MainLayout>
+          <div className="animate-pulse space-y-4">
+            <div className="h-12 bg-slate-800 rounded w-1/4"></div>
+            <div className="h-32 bg-slate-800 rounded"></div>
+            <div className="h-32 bg-slate-800 rounded"></div>
+          </div>
+        </MainLayout>
+      );
+    }
+
+    // When online, check authentication
+    if (!currentUser) {
+      return (
+        <MainLayout>
+          <div className="rounded-3xl border border-red-500/20 bg-red-500/10 px-10 py-16 text-center text-red-100 shadow-xl backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">
+              🔒
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold">Sign In Required</h3>
+            <p className="mt-3 text-sm text-red-100/80">
+              Please sign in to view your bookings
+            </p>
+          </div>
+        </MainLayout>
+      );
+    }
   }
+  
+  // For offline mode, use empty array if bookingsByEvent is undefined
+  const displayBookings = bookingsByEvent || [];
 
   const totalTicketsForEvent = (eventId: Id<"events">) => {
-    const group = bookingsByEvent.find((g) => g.event?._id === eventId);
+    const group = displayBookings.find((g) => g.event?._id === eventId);
     if (!group) return 0;
     return group.bookings.reduce((sum, b) => sum + b.quantity, 0);
   };
 
   const totalPriceForEvent = (eventId: Id<"events">) => {
-    const group = bookingsByEvent.find((g) => g.event?._id === eventId);
+    const group = displayBookings.find((g) => g.event?._id === eventId);
     if (!group) return 0;
     return group.bookings.reduce((sum, b) => sum + b.totalPrice, 0);
   };
@@ -85,25 +148,36 @@ export default function MyBookingsPage() {
         </p>
       </div>
 
-      {bookingsByEvent.length === 0 ? (
+      {!displayBookings || displayBookings.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-16 text-center text-slate-100 shadow-xl backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-3xl">
             🎟️
           </div>
           <h3 className="mt-6 text-2xl font-semibold">No bookings yet</h3>
           <p className="mt-3 text-sm text-slate-300/80">
-            Browse events and book tickets to get started
+            {isOffline 
+              ? "No cached bookings available. Connect to the internet to view your bookings."
+              : "Browse events and book tickets to get started"}
           </p>
-          <Link
-            href="/"
-            className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
-          >
-            Browse Events
-          </Link>
+          {!isOffline && (
+            <Link
+              href="/"
+              className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#483d8b] to-[#6a5acd] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[0_18px_45px_rgba(72,61,139,0.28)] transition hover:shadow-[0_22px_55px_rgba(72,61,139,0.36)]"
+            >
+              Browse Events
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {bookingsByEvent.map(({ event, bookings }) => {
+          {isOffline && (
+            <div className="col-span-full mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3">
+              <p className="text-sm font-semibold text-orange-200">
+                📡 Showing cached data - Some information may be outdated
+              </p>
+            </div>
+          )}
+          {displayBookings.map(({ event, bookings }) => {
             if (!event) return null;
             const totalTickets = totalTicketsForEvent(event._id);
             const totalPrice = totalPriceForEvent(event._id);

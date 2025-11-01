@@ -15,7 +15,8 @@
     "mobile:build-apk:fast": "cd android && gradlew.bat assembleDebug",
     "convex:dev": "convex dev",
     "convex:prod": "convex dev --prod",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "android:icons": "node scripts/generate-android-icons.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",

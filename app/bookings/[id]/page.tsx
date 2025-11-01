@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
@@ -10,6 +10,8 @@ import Link from "next/link";
 import QRCode from "react-qr-code";
 import { useParams } from "next/navigation";
 import { useQrTokenGenerator } from "../../lib/qrTokenGenerator";
+import { useCachedQuery } from "../../lib/useCachedQuery";
+import { useOffline } from "../../lib/useOffline";
 
 type QrData = {
   value: string;
@@ -20,13 +22,25 @@ type QrData = {
 export default function BookingConfirmationPage() {
   const params = useParams<{ id: string }>();
   const idParam = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+  const isOffline = useOffline();
 
   const bookingId = idParam ? (idParam as Id<"bookings">) : null;
-  const booking = useQuery(
+  const booking = useCachedQuery<any>(
     api.bookings.getBooking,
-    bookingId ? { bookingId } : "skip"
+    bookingId ? { bookingId } : "skip",
+    {
+      cacheKey: bookingId ? `booking-${bookingId}` : "skip",
+      cacheTTL: 2 * 60 * 1000, // 2 minutes
+    }
   );
-  const currentUser = useQuery(api.users.current);
+  const currentUser = useCachedQuery<any>(
+    api.users.current,
+    {},
+    {
+      cacheKey: "current_user",
+      cacheTTL: 5 * 60 * 1000, // 5 minutes
+    }
+  );
   const updateScanStatus = useMutation(api.bookings.setScannedStatus);
   const { generateTokens, isUsingLocalGeneration } = useQrTokenGenerator();
 
@@ -316,8 +330,6 @@ export default function BookingConfirmationPage() {
 
   // Request tokens when needed
   useEffect(() => {
-    const isOffline = typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
-    
     // If offline and we have cached QR data, don't try to generate new tokens
     if (isOffline && qrData) {
       return;
@@ -509,6 +521,23 @@ export default function BookingConfirmationPage() {
   return (
     <MainLayout>
       <div className="mx-auto w-full max-w-6xl space-y-8">
+        {/* Offline Indicator */}
+        {isOffline && booking && (
+          <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 px-6 py-4 backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">📱</div>
+              <div>
+                <h3 className="text-sm font-semibold text-orange-100">
+                  Showing Cached Ticket
+                </h3>
+                <p className="mt-1 text-xs text-orange-100/80">
+                  You&apos;re offline. Displaying your last downloaded ticket. Connect to the internet to refresh.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Header Section */}
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
@@ -634,7 +663,7 @@ export default function BookingConfirmationPage() {
                   </div>
                 ) : !qrData || !qrData.value ? (
                   <div className="flex h-64 w-full flex-col items-center justify-center gap-4">
-                    {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine ? (
+                    {isOffline ? (
                       <>
                         <div className="text-4xl">📡</div>
                         <p className="text-lg font-semibold text-slate-300">

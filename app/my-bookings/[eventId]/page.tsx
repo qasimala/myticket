@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import MainLayout from "../../components/MainLayout";
@@ -10,6 +9,8 @@ import { useParams, useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { ArrowLeft, Calendar, MapPin, Ticket } from "lucide-react";
 import { useQrTokenGenerator } from "../../lib/qrTokenGenerator";
+import { useCachedQuery } from "../../lib/useCachedQuery";
+import { useOffline } from "../../lib/useOffline";
 
 type QrData = {
   value: string;
@@ -24,11 +25,23 @@ export default function EventTicketsPage() {
     ? params?.eventId[0]
     : params?.eventId;
   const eventId = eventIdParam ? (eventIdParam as Id<"events">) : null;
+  const isOffline = useOffline();
 
-  const currentUser = useQuery(api.users.current);
-  const eventBookings = useQuery(
+  const currentUser = useCachedQuery<any>(
+    api.users.current,
+    {},
+    {
+      cacheKey: "current_user",
+      cacheTTL: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+  const eventBookings = useCachedQuery<any>(
     api.bookings.getBookingsByEvent,
-    eventId ? { eventId } : "skip"
+    eventId ? { eventId } : "skip",
+    {
+      cacheKey: eventId ? `event-bookings-${eventId}` : "skip",
+      cacheTTL: 2 * 60 * 1000, // 2 minutes
+    }
   );
   const event =
     eventBookings && eventBookings.length > 0 ? eventBookings[0].event : null;
@@ -242,8 +255,6 @@ export default function EventTicketsPage() {
   useEffect(() => {
     if (!eventBookings) return;
 
-    const isOffline = typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
-
     eventBookings.forEach((booking) => {
       if (booking.scanned) return;
       const queue = qrQueues.get(booking._id) || [];
@@ -258,7 +269,7 @@ export default function EventTicketsPage() {
         requestTokens(booking._id);
       }
     });
-  }, [eventBookings, qrQueues, qrDataMap, requestTokens]);
+  }, [eventBookings, qrQueues, qrDataMap, requestTokens, isOffline]);
 
   useEffect(() => {
     if (!eventBookings) return;
@@ -415,6 +426,23 @@ export default function EventTicketsPage() {
 
   return (
     <MainLayout>
+      {/* Offline Indicator */}
+      {isOffline && eventBookings && eventBookings.length > 0 && (
+        <div className="mb-6 rounded-xl border border-orange-500/20 bg-orange-500/10 px-6 py-4 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📱</div>
+            <div>
+              <h3 className="text-sm font-semibold text-orange-100">
+                Showing Cached Tickets
+              </h3>
+              <p className="mt-1 text-xs text-orange-100/80">
+                You&apos;re offline. Displaying your last downloaded tickets. Connect to the internet to refresh.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="mb-6">
         <button
           onClick={() => router.back()}

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
 import { useOffline } from "../lib/useOffline";
 import { useCachedQuery } from "../lib/useCachedQuery";
-import { setCachedData } from "../lib/offlineCache";
+import { setCachedData, getCachedData } from "../lib/offlineCache";
+import { useAction } from "convex/react";
 
 /**
  * Component that runs in the background to pre-fetch and cache
@@ -13,6 +14,7 @@ import { setCachedData } from "../lib/offlineCache";
  */
 export default function BackgroundCache() {
   const isOffline = useOffline();
+  const getQrSecret = useAction(api.bookings.getQrSecret);
   
   // Check if user is authenticated (using cached query to avoid extra requests)
   const currentUser = useCachedQuery<any>(
@@ -45,6 +47,33 @@ export default function BackgroundCache() {
       cacheTTL: 60 * 60 * 1000, // 1 hour
     }
   );
+
+  // Pre-cache QR secret for offline QR generation
+  useEffect(() => {
+    if (isOffline || !currentUser) return;
+    
+    // Check if secret is already cached
+    getCachedData<string>("qr_secret", 30 * 24 * 60 * 60 * 1000)
+      .then((cachedSecret) => {
+        if (!cachedSecret) {
+          // Secret not cached, fetch and cache it
+          console.log("[BackgroundCache] Pre-caching QR secret for offline generation");
+          getQrSecret()
+            .then((secret) => {
+              setCachedData("qr_secret", secret, 30 * 24 * 60 * 60 * 1000).catch((error) => {
+                console.error("[BackgroundCache] Failed to cache QR secret:", error);
+              });
+            })
+            .catch((error) => {
+              // Silently fail - user might not be authorized yet
+              console.debug("[BackgroundCache] Could not fetch QR secret:", error.message);
+            });
+        }
+      })
+      .catch((error) => {
+        console.error("[BackgroundCache] Failed to check QR secret cache:", error);
+      });
+  }, [currentUser, isOffline, getQrSecret]);
 
   // Pre-fetch and cache all individual bookings and event bookings
   useEffect(() => {

@@ -2,6 +2,8 @@ import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import QrToken, { isAndroidNative } from "./qrTokenPlugin";
+import { getCachedData, setCachedData } from "./offlineCache";
+import { generateQrTokensClient } from "./qrTokenClient";
 
 /**
  * Type definition for QR token data
@@ -19,6 +21,10 @@ export type QrTokenResult = {
   tokens: QrTokenData[];
 };
 
+const QR_SECRET_CACHE_KEY = "qr_secret";
+// Cache secret for 30 days (same user should have access)
+const QR_SECRET_CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+
 /**
  * Check if the device is offline
  */
@@ -30,10 +36,38 @@ function isOffline(): boolean {
 }
 
 /**
- * Hook to generate QR tokens either locally (on Android) or from server (web/other platforms)
+ * Get cached QR secret or fetch from server
+ */
+async function getQrSecret(serverGetQrSecret: () => Promise<string>): Promise<string | null> {
+  // Try to get from cache first
+  const cachedSecret = await getCachedData<string>(QR_SECRET_CACHE_KEY, QR_SECRET_CACHE_TTL);
+  if (cachedSecret) {
+    return cachedSecret;
+  }
+
+  // If offline, we can't fetch the secret
+  if (isOffline()) {
+    return null;
+  }
+
+  // Fetch from server and cache it
+  try {
+    const secret = await serverGetQrSecret();
+    await setCachedData(QR_SECRET_CACHE_KEY, secret, QR_SECRET_CACHE_TTL);
+    return secret;
+  } catch (error) {
+    console.error('Failed to fetch QR secret:', error);
+    return null;
+  }
+}
+
+/**
+ * Hook to generate QR tokens either locally (on Android/web) or from server
+ * Supports offline generation when secret is cached
  */
 export function useQrTokenGenerator() {
   const serverGenerateQrToken = useAction(api.bookings.generateQrToken);
+  const serverGetQrSecret = useAction(api.bookings.getQrSecret);
 
   const generateTokens = async (
     bookingId: Id<"bookings">,
@@ -69,13 +103,37 @@ export function useQrTokenGenerator() {
         }
       }
     } else {
-      // Use server generation for web and other platforms
-      if (offline) {
-        throw new Error('Cannot generate QR tokens offline. Please check your connection and try again.');
+      // Web/other platforms: Try client-side generation first if we have cached secret
+      const cachedSecret = await getQrSecret(serverGetQrSecret);
+      
+      if (cachedSecret) {
+        try {
+          console.log('Generating QR tokens client-side using cached secret');
+          return await generateQrTokensClient(cachedSecret, bookingId, ticketId);
+        } catch (error) {
+          console.error('Failed to generate tokens client-side:', error);
+          // If offline, throw error (can't fetch from server)
+          if (offline) {
+            throw new Error('Failed to generate QR tokens offline. Please check your connection and try again.');
+          }
+          // If online, fall back to server generation
+          console.log('Falling back to server generation');
+        }
       }
+      
+      // Fall back to server generation (online only)
+      if (offline) {
+        throw new Error('Cannot generate QR tokens offline. Secret not cached. Please connect to the internet first to cache the secret.');
+      }
+      
       console.log('Generating QR tokens from server');
       try {
-        return await serverGenerateQrToken({ bookingId });
+        const result = await serverGenerateQrToken({ bookingId });
+        // Also cache the secret for future offline use (in background, don't wait)
+        getQrSecret(serverGetQrSecret).catch((err) => {
+          console.warn('Failed to cache QR secret:', err);
+        });
+        return result;
       } catch (error) {
         // Check if error is due to offline state
         if (isOffline() || (error instanceof Error && error.message.includes('network'))) {

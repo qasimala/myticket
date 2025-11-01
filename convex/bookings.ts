@@ -851,6 +851,19 @@ export const setValidatedStatus = mutation({
   },
 });
 
+export const getUserBookingsCount = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    return bookings.length;
+  },
+});
+
 export const getBookingForQr = internalQuery({
   args: {
     bookingId: v.id("bookings"),
@@ -924,5 +937,41 @@ export const generateQrToken = action({
       windowMs: QR_WINDOW_MS,
       tokens,
     };
+  },
+});
+
+/**
+ * Get QR secret for client-side generation (only for authorized users)
+ * This allows offline QR generation on web/mobile
+ */
+export const getQrSecret = action({
+  args: {},
+  handler: async (ctx): Promise<string> => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Must be signed in");
+
+    // Only allow users who have bookings or are admins to get the secret
+    // This prevents unauthorized access to the secret
+    const currentUser = await ctx.runQuery(api.users.current, {});
+    if (!currentUser) throw new Error("User not found");
+
+    const isPrivileged =
+      currentUser.role === "admin" || currentUser.role === "superadmin";
+
+    // Check if user has any bookings (authorized to generate QR codes)
+    const userBookings = await ctx.runQuery(internal.bookings.getUserBookingsCount, {
+      userId,
+    });
+
+    if (!isPrivileged && userBookings === 0) {
+      throw new Error("Not authorized to access QR secret");
+    }
+
+    const secret = process.env.QR_SECRET;
+    if (!secret) {
+      throw new Error("QR_SECRET environment variable not configured");
+    }
+
+    return secret;
   },
 });

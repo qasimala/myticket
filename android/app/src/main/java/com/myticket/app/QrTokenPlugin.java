@@ -4,6 +4,7 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.JSObject;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -50,9 +51,20 @@ public class QrTokenPlugin extends Plugin {
                 tokensArray.put(token);
             }
             
-            JSONObject result = new JSONObject();
+            // Convert JSONObject to JSObject for Capacitor
+            JSObject result = new JSObject();
             result.put("windowMs", QR_WINDOW_MS);
-            result.put("tokens", tokensArray);
+            
+            // Convert JSONArray to ArrayList of JSObjects for Capacitor
+            java.util.ArrayList<JSObject> jsTokensList = new java.util.ArrayList<>();
+            for (int i = 0; i < tokensArray.length(); i++) {
+                JSONObject token = tokensArray.getJSONObject(i);
+                JSObject jsToken = new JSObject();
+                jsToken.put("qrValue", token.getString("qrValue"));
+                jsToken.put("expiresAt", token.getLong("expiresAt"));
+                jsTokensList.add(jsToken);
+            }
+            result.put("tokens", jsTokensList);
             
             call.resolve(result);
             

@@ -297,11 +297,10 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data && event.data.type === 'CACHE_URLS') {
-    event.waitUntil(
-      caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-        return cache.addAll(event.data.urls);
-      })
-    );
+    const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+    if (urls.length > 0) {
+      event.waitUntil(precachePages(urls));
+    }
   }
 
   if (event.data && event.data.type === 'CLEAR_CACHE') {
@@ -315,3 +314,80 @@ self.addEventListener('message', (event) => {
   }
 });
 
+async function precachePages(urls) {
+  for (const url of urls) {
+    await precachePage(url).catch((error) => {
+      console.error('[Service Worker] Failed to precache', url, error);
+    });
+  }
+}
+
+async function precachePage(url) {
+  const request = createRequest(url);
+  const response = await fetch(request);
+
+  if (!response || response.status !== 200) {
+    throw new Error(`Unexpected response status: ${response?.status}`);
+  }
+
+  const dynamicCache = await caches.open(DYNAMIC_CACHE_NAME);
+  await dynamicCache.put(request, response.clone());
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html')) {
+    return;
+  }
+
+  const html = await response.clone().text();
+  const assetUrls = extractAssetUrls(html);
+
+  for (const assetUrl of assetUrls) {
+    await cacheAsset(assetUrl).catch((error) => {
+      console.warn('[Service Worker] Failed to cache asset', assetUrl, error);
+    });
+  }
+}
+
+function createRequest(url) {
+  const absoluteUrl = new URL(url, self.location.origin);
+  return new Request(absoluteUrl.toString(), {
+    credentials: 'include',
+    cache: 'no-cache',
+  });
+}
+
+async function cacheAsset(assetUrl) {
+  const absoluteUrl = new URL(assetUrl, self.location.origin);
+
+  if (absoluteUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  const request = new Request(absoluteUrl.toString(), {
+    credentials: 'include',
+    cache: 'no-cache',
+  });
+  const response = await fetch(request);
+
+  if (!response || response.status !== 200) {
+    return;
+  }
+
+  const cacheName = absoluteUrl.pathname.startsWith('/_next/static/')
+    ? STATIC_CACHE_NAME
+    : DYNAMIC_CACHE_NAME;
+  const cache = await caches.open(cacheName);
+  await cache.put(request, response.clone());
+}
+
+function extractAssetUrls(html) {
+  const assetRegex = /(href|src)=["'](\/_next\/[^"'?]+(?:\.(?:js|mjs|css|json))[^"']*)/g;
+  const urls = new Set();
+  let match;
+
+  while ((match = assetRegex.exec(html)) !== null) {
+    urls.add(match[2]);
+  }
+
+  return Array.from(urls);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
 import { useOffline } from "../lib/useOffline";
 import { useCachedQuery } from "../lib/useCachedQuery";
@@ -79,7 +79,67 @@ export default function BackgroundCache() {
     }
   }, [allBookings, bookingsByEvent, isOffline, currentUser]);
 
+  const precacheUrls = useMemo(() => {
+    const urls = new Set<string>();
+    urls.add("/my-bookings");
+
+    if (allBookings?.length) {
+      allBookings.forEach((booking) => {
+        if (booking?._id) {
+          urls.add(`/bookings/${booking._id}`);
+        }
+      });
+    }
+
+    if (bookingsByEvent?.length) {
+      bookingsByEvent.forEach(({ event }) => {
+        if (event?._id) {
+          urls.add(`/my-bookings/${event._id}`);
+        }
+      });
+    }
+
+    return Array.from(urls);
+  }, [allBookings, bookingsByEvent]);
+
+  const cachedUrlRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+    if (isOffline || !currentUser) return;
+    if (!precacheUrls.length) return;
+
+    // Only send URLs that have not already been cached in this session
+    const urlsToCache = precacheUrls.filter((url) => {
+      return !cachedUrlRef.current.has(url);
+    });
+
+    if (urlsToCache.length === 0) return;
+
+    navigator.serviceWorker.ready
+      .then((registration) => {
+        const worker = registration.active || registration.waiting;
+        if (!worker) return;
+
+        console.log(
+          `[BackgroundCache] Requesting service worker to cache pages: ${urlsToCache.join(
+            ", "
+          )}`
+        );
+
+        worker.postMessage({
+          type: "CACHE_URLS",
+          urls: urlsToCache,
+        });
+
+        urlsToCache.forEach((url) => cachedUrlRef.current.add(url));
+      })
+      .catch((error) => {
+        console.error("[BackgroundCache] Failed to precache pages:", error);
+      });
+  }, [precacheUrls, isOffline, currentUser]);
+
   // This component doesn't render anything
   return null;
 }
-

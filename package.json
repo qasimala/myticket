@@ -36,12 +36,13 @@
     "typescript": "^5"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
     "cross-env": "^10.1.0",
     "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
+    "sharp": "^0.34.4",
     "tailwindcss": "^4"
   }
 }

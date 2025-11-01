@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import Sidebar from "./Sidebar";
 import BottomNavigation from "./BottomNavigation";
@@ -13,10 +14,12 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
   const cart = useQuery(api.cart.getCart);
 
   const cartItems = Array.isArray(cart) ? cart : [];
   const hasItems = cartItems.length > 0;
+  const isCheckoutPage = pathname === "/checkout";
   const totalItems = cartItems.reduce(
     (sum: number, item: any) => sum + (item?.quantity ?? 0),
     0
@@ -44,7 +47,7 @@ export default function MainLayout({
         <div className="flex w-full flex-col">
           <main
             className={`flex-1 overflow-x-hidden ${
-              hasItems ? "pb-28 lg:pb-32" : "pb-20 lg:pb-14"
+              hasItems && !isCheckoutPage ? "pb-28 lg:pb-32" : "pb-20 lg:pb-14"
             }`}
           >
             <div className="relative mx-auto w-full px-4 pb-12 pt-10 sm:px-6 lg:px-8 xl:px-12">
@@ -54,7 +57,7 @@ export default function MainLayout({
         </div>
       </div>
 
-      {hasItems && (
+      {hasItems && !isCheckoutPage && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-20 lg:pb-5 lg:pl-[calc(18rem+1.25rem)]">
           <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_28px_70px_rgba(15,23,42,0.55)] backdrop-blur-xl animate-fade-up">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-70" />

@@ -169,13 +169,24 @@ export default function EventTicketsPage() {
             return newMap;
           });
           setNow(Date.now());
+          // Clear any previous errors on success
+          setQrErrors((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(bookingId);
+            return newMap;
+          });
+        } else {
+          // If we got tokens but they're all expired, that's unusual but not an error
+          // Just don't update the queue - it will trigger another request if needed
+          // Only set error if we got no tokens at all from the API
+          if (!result.tokens || result.tokens.length === 0) {
+            setQrErrors((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(bookingId, "No QR tokens generated. Please try again.");
+              return newMap;
+            });
+          }
         }
-
-        setQrErrors((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(bookingId);
-          return newMap;
-        });
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Failed to refresh QR code";
@@ -259,17 +270,28 @@ export default function EventTicketsPage() {
       if (booking.scanned) return;
       const queue = qrQueues.get(booking._id) || [];
       const qrData = qrDataMap.get(booking._id);
+      const qrError = qrErrors.get(booking._id);
       
       // If offline and we have cached QR data, don't try to generate new tokens
       if (isOffline && qrData) {
         return;
       }
       
-      if (queue.length <= 1 && !fetchingRefs.current.get(booking._id)) {
+      // Don't request if there's an error (user needs to manually retry)
+      if (qrError) {
+        return;
+      }
+      
+      // Only request if queue is low AND we're not already fetching
+      // Also check that we have valid tokens in the queue (not all expired)
+      const nowTime = Date.now();
+      const validTokens = queue.filter((token) => token.expiresAt > nowTime);
+      
+      if (validTokens.length <= 1 && !fetchingRefs.current.get(booking._id)) {
         requestTokens(booking._id);
       }
     });
-  }, [eventBookings, qrQueues, qrDataMap, requestTokens, isOffline]);
+  }, [eventBookings, qrQueues, qrDataMap, qrErrors, requestTokens, isOffline]);
 
   useEffect(() => {
     if (!eventBookings) return;

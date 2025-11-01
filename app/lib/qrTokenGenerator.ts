@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -69,7 +70,7 @@ export function useQrTokenGenerator() {
   const serverGenerateQrToken = useAction(api.bookings.generateQrToken);
   const serverGetQrSecret = useAction(api.bookings.getQrSecret);
 
-  const generateTokens = async (
+  const generateTokens = useCallback(async (
     bookingId: Id<"bookings">,
     ticketId: Id<"tickets">
   ): Promise<QrTokenResult> => {
@@ -109,14 +110,20 @@ export function useQrTokenGenerator() {
       if (cachedSecret) {
         try {
           console.log('Generating QR tokens client-side using cached secret');
-          return await generateQrTokensClient(cachedSecret, bookingId, ticketId);
+          const result = await generateQrTokensClient(cachedSecret, bookingId, ticketId);
+          // Verify we got valid tokens before returning
+          if (result && result.tokens && result.tokens.length > 0) {
+            return result;
+          }
+          // If no valid tokens, fall through to server generation if online
+          console.warn('Client-side generation returned no valid tokens, falling back to server');
         } catch (error) {
           console.error('Failed to generate tokens client-side:', error);
           // If offline, throw error (can't fetch from server)
           if (offline) {
             throw new Error('Failed to generate QR tokens offline. Please check your connection and try again.');
           }
-          // If online, fall back to server generation
+          // If online, fall through to server generation
           console.log('Falling back to server generation');
         }
       }
@@ -142,7 +149,7 @@ export function useQrTokenGenerator() {
         throw error;
       }
     }
-  };
+  }, [serverGenerateQrToken, serverGetQrSecret]);
 
   return {
     generateTokens,

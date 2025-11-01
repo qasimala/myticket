@@ -44,6 +44,50 @@ export default function EventTicketsPage() {
   );
   const progressAnimationRefs = useRef<Map<Id<"bookings">, number>>(new Map());
 
+  // Load cached QR data from sessionStorage on mount
+  useEffect(() => {
+    if (!eventBookings) return;
+    
+    eventBookings.forEach((booking) => {
+      try {
+        const cacheKey = `qr_cache_${booking._id}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const cachedData = JSON.parse(cached) as QrData;
+          // Only use cached data if it hasn't expired
+          if (cachedData.expiresAt > Date.now()) {
+            setQrDataMap((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(booking._id, cachedData);
+              return newMap;
+            });
+            setQrQueues((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(booking._id, [cachedData]);
+              return newMap;
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to load cached QR data for booking ${booking._id}:`, error);
+      }
+    });
+  }, [eventBookings]);
+
+  // Save QR data to sessionStorage when it changes
+  useEffect(() => {
+    if (!qrDataMap.size) return;
+    
+    qrDataMap.forEach((qrData, bookingId) => {
+      try {
+        const cacheKey = `qr_cache_${bookingId}`;
+        sessionStorage.setItem(cacheKey, JSON.stringify(qrData));
+      } catch (error) {
+        console.error(`Failed to cache QR data for booking ${bookingId}:`, error);
+      }
+    });
+  }, [qrDataMap]);
+
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`;
   };
@@ -198,14 +242,23 @@ export default function EventTicketsPage() {
   useEffect(() => {
     if (!eventBookings) return;
 
+    const isOffline = typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
+
     eventBookings.forEach((booking) => {
       if (booking.scanned) return;
       const queue = qrQueues.get(booking._id) || [];
+      const qrData = qrDataMap.get(booking._id);
+      
+      // If offline and we have cached QR data, don't try to generate new tokens
+      if (isOffline && qrData) {
+        return;
+      }
+      
       if (queue.length <= 1 && !fetchingRefs.current.get(booking._id)) {
         requestTokens(booking._id);
       }
     });
-  }, [eventBookings, qrQueues, requestTokens]);
+  }, [eventBookings, qrQueues, qrDataMap, requestTokens]);
 
   useEffect(() => {
     if (!eventBookings) return;
@@ -532,8 +585,27 @@ export default function EventTicketsPage() {
                     </button>
                   </div>
                 ) : !qrData ? (
-                  <div className="flex h-48 w-full items-center justify-center">
-                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400/30 border-t-indigo-400"></div>
+                  <div className="flex h-48 w-full flex-col items-center justify-center gap-3">
+                    {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine ? (
+                      <>
+                        <div className="text-3xl">📡</div>
+                        <p className="text-sm font-semibold text-slate-300">
+                          Offline Mode
+                        </p>
+                        <p className="text-xs text-slate-400 text-center max-w-xs">
+                          {isUsingLocalGeneration 
+                            ? "Please wait for booking details to load, or check your connection."
+                            : "QR codes require an internet connection. Please check your connection and try again."}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400/30 border-t-indigo-400"></div>
+                        <p className="text-xs text-slate-400">
+                          Generating QR code...
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="relative inline-flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/50 p-6">

@@ -40,6 +40,55 @@ export default function BookingConfirmationPage() {
   const progressAnimationRef = useRef<number | null>(null);
   const previousBookingIdRef = useRef<Id<"bookings"> | null>(null);
 
+  // Load cached QR data from sessionStorage on mount
+  useEffect(() => {
+    if (!bookingId) return;
+    
+    try {
+      const cacheKey = `qr_cache_${bookingId}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const cachedData = JSON.parse(cached) as QrData;
+        // Only use cached data if it hasn't expired
+        if (cachedData.expiresAt > Date.now()) {
+          setQrData(cachedData);
+          setQrQueue([cachedData]);
+          setLastQrValue(cachedData.value);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load cached QR data:', error);
+    }
+  }, [bookingId]);
+
+  // Cache booking data (specifically ticketId) for offline QR generation
+  useEffect(() => {
+    if (!bookingId || !booking || !booking.ticketId) return;
+    
+    try {
+      const cacheKey = `booking_cache_${bookingId}`;
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        ticketId: booking.ticketId,
+        _id: booking._id,
+        scanned: booking.scanned,
+      }));
+    } catch (error) {
+      console.error('Failed to cache booking data:', error);
+    }
+  }, [bookingId, booking?._id, booking?.ticketId, booking?.scanned]);
+
+  // Save QR data to sessionStorage when it changes
+  useEffect(() => {
+    if (!bookingId || !qrData) return;
+    
+    try {
+      const cacheKey = `qr_cache_${bookingId}`;
+      sessionStorage.setItem(cacheKey, JSON.stringify(qrData));
+    } catch (error) {
+      console.error('Failed to cache QR data:', error);
+    }
+  }, [bookingId, qrData]);
+
   const isScanned = Boolean(booking?.scanned);
   const isValidated = Boolean(booking?.validated && !booking?.scanned);
 
@@ -71,16 +120,35 @@ export default function BookingConfirmationPage() {
   const missingBookingId = !bookingId;
 
   const requestTokens = useCallback(
-    async (force = false) => {
+    async (force = false, useCachedBooking = false) => {
       if (!bookingId) return;
       if (fetchingRef.current) return;
-      if (booking === undefined || !booking) return;
-      if (booking.scanned && !force) return;
-      if (!booking.ticketId) return;
+      
+      // Try to get booking data from cache if requested
+      let bookingData = booking;
+      let ticketId: Id<"tickets"> | undefined = booking?.ticketId;
+      
+      if (useCachedBooking && (!bookingData || !ticketId)) {
+        try {
+          const cacheKey = `booking_cache_${bookingId}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const cachedBooking = JSON.parse(cached) as { ticketId: Id<"tickets">; scanned: boolean };
+            ticketId = cachedBooking.ticketId;
+            bookingData = { scanned: cachedBooking.scanned } as typeof booking;
+          }
+        } catch (error) {
+          console.error('Failed to load cached booking data:', error);
+        }
+      }
+      
+      if (!bookingData && !useCachedBooking) return;
+      if (bookingData?.scanned && !force) return;
+      if (!ticketId) return;
 
       fetchingRef.current = true;
       try {
-        const result = await generateTokens(bookingId, booking.ticketId);
+        const result = await generateTokens(bookingId, ticketId);
         const nowTime = Date.now();
         const tokens = Array.isArray(result.tokens)
           ? result.tokens
@@ -248,6 +316,34 @@ export default function BookingConfirmationPage() {
 
   // Request tokens when needed
   useEffect(() => {
+    const isOffline = typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
+    
+    // If offline and we have cached QR data, don't try to generate new tokens
+    if (isOffline && qrData) {
+      return;
+    }
+
+    // For Android native, try to generate even if booking is still loading
+    // Use cached booking data if available
+    if (isUsingLocalGeneration && booking === undefined && bookingId) {
+      try {
+        const cacheKey = `booking_cache_${bookingId}`;
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const cachedBooking = JSON.parse(cached) as { ticketId: Id<"tickets">; scanned: boolean };
+          if (!cachedBooking.scanned && cachedBooking.ticketId && !fetchingRef.current && qrQueue.length <= 1 && !qrError) {
+            // Generate tokens using cached booking data
+            requestTokens(false, true);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to use cached booking data:', error);
+      }
+      // If no cached booking data, show cached QR if available
+      return;
+    }
+
     if (booking === undefined || !booking || booking.scanned) {
       return;
     }
@@ -265,9 +361,50 @@ export default function BookingConfirmationPage() {
     if (qrQueue.length <= 1) {
       requestTokens();
     }
-  }, [booking?._id, booking?.scanned, booking?.ticketId, qrQueue.length, qrError, requestTokens]);
+  }, [booking?._id, booking?.scanned, booking?.ticketId, qrQueue.length, qrError, requestTokens, bookingId, isUsingLocalGeneration, qrData]);
 
   if (booking === undefined) {
+    // If we have cached QR data, show it even while booking is loading
+    if (qrData && qrData.value) {
+      const cachedRefreshSeconds = qrData.windowMs / 1000;
+      const cachedRemainingSeconds = Math.max(0, (qrData.expiresAt - now) / 1000);
+      const cachedRemainingSecondsDisplay = Math.ceil(cachedRemainingSeconds);
+      
+      return (
+        <MainLayout>
+          <div className="mx-auto w-full max-w-6xl space-y-8">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-800/90 shadow-2xl overflow-hidden backdrop-blur-xl p-8">
+              <div className="flex flex-col items-center justify-center">
+                <div className="mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-6 py-3">
+                  <p className="text-base font-semibold text-yellow-200 text-center">
+                    ⚠️ Loading booking details... Showing cached QR code
+                  </p>
+                </div>
+                <div
+                  ref={progressRef}
+                  className="qr-progress relative inline-flex items-center justify-center rounded-3xl p-4 transition-all duration-200"
+                >
+                  <div className="rounded-2xl bg-white p-4 shadow-inner">
+                    <QRCode value={qrData.value} size={220} />
+                  </div>
+                </div>
+                <p className="mt-6 text-center text-sm font-medium text-slate-300 max-w-sm">
+                  Present this QR code at the entrance
+                </p>
+                {cachedRemainingSecondsDisplay !== null &&
+                  cachedRefreshSeconds !== null && (
+                    <p className="mt-2 text-center text-xs text-slate-500">
+                      Valid for {cachedRemainingSecondsDisplay}s · Refreshes every{" "}
+                      {cachedRefreshSeconds}s
+                    </p>
+                  )}
+              </div>
+            </div>
+          </div>
+        </MainLayout>
+      );
+    }
+    
     return (
       <MainLayout>
         <div className="animate-pulse space-y-4">
@@ -496,8 +633,32 @@ export default function BookingConfirmationPage() {
                     </button>
                   </div>
                 ) : !qrData || !qrData.value ? (
-                  <div className="flex h-64 w-full items-center justify-center">
-                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400/30 border-t-indigo-400"></div>
+                  <div className="flex h-64 w-full flex-col items-center justify-center gap-4">
+                    {typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine ? (
+                      <>
+                        <div className="text-4xl">📡</div>
+                        <p className="text-lg font-semibold text-slate-300">
+                          Offline Mode
+                        </p>
+                        <p className="text-sm text-slate-400 text-center max-w-sm">
+                          {isUsingLocalGeneration 
+                            ? "Please wait for booking details to load, or check your connection."
+                            : "QR codes require an internet connection. Please check your connection and try again."}
+                        </p>
+                        {booking === undefined && (
+                          <p className="text-xs text-slate-500 text-center max-w-sm mt-2">
+                            Loading booking details...
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-400/30 border-t-indigo-400"></div>
+                        <p className="text-sm text-slate-400">
+                          Generating QR code...
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="relative inline-flex flex-col items-center">
